@@ -19,7 +19,7 @@ public class MonitorStatistics {
 	private int successfulChecks;
 	private int failedChecks;
 	private double uptimePercentage;
-	private double averageResponetime;
+	private double averageResponseTime;
 	private Long minResponseTime;
 	private Long maxResponseTime;
 }

@@ -50,17 +50,17 @@ public class MonitorController {
 	}
 	
 	@GetMapping("/api/monitors/{id}")
-	public Monitor getMonitorById(@PathVariable Integer id) throws Exception {
+	public Monitor getMonitorById(@PathVariable Integer id) {
 		return service.getMonitorById(id);
 	}
-	
+
 	@PatchMapping("/api/monitors/{id}")
-	public Monitor updateMonitor(@PathVariable Integer id, @RequestBody @Valid Monitor monitor) throws Exception {
+	public Monitor updateMonitor(@PathVariable Integer id, @RequestBody @Valid Monitor monitor) {
 		return service.updateMonitor(id, monitor);
 	}
-	
+
 	@DeleteMapping("/api/monitors/{id}")
-	public void deleteMonitor(@PathVariable Integer id) throws Exception {
+	public void deleteMonitor(@PathVariable Integer id) {
 		service.deleteMonitor(id);
 	}
 	
@@ -73,19 +73,19 @@ public class MonitorController {
 	
 	@GetMapping("/api/monitors/{id}/results")
 	
-	public Page<MonitorResultResponse> getResults(@PathVariable Integer id, @PageableDefault(size = 20) Pageable pageable) throws Exception{
+	public Page<MonitorResultResponse> getResults(@PathVariable Integer id, @PageableDefault(size = 20) Pageable pageable) {
 		Monitor monitor = service.getMonitorById(id);
 		return monitorResultService.getResultsByMonitorPaginated(monitor, pageable);
 	}
 	
 	@GetMapping("/api/monitors/{id}/statistics")
-	public MonitorStatistics getStatistics(@PathVariable Integer id) throws Exception {
+	public MonitorStatistics getStatistics(@PathVariable Integer id) {
 		Monitor monitor = service.getMonitorById(id);
 		return monitorResultService.getStatistics(monitor);
 	}
 	
 	@GetMapping("/api/monitors/{id}/status")
-	public Optional<MonitorStatusResponse> getStatus(@PathVariable Integer id) throws Exception{
+	public Optional<MonitorStatusResponse> getStatus(@PathVariable Integer id) {
 		Monitor monitor = service.getMonitorById(id);
 		Optional<MonitorStatusResponse> response = monitorResultService.getCurrentStatus(monitor);
 		return response;		

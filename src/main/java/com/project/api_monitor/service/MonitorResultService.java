@@ -73,7 +73,7 @@ public class MonitorResultService {
 		return MonitorStatistics.builder().monitorId(monitor.getId())
 								.totalChecks(totalChecks).successfulChecks(successfulChecks)
 								.failedChecks(failedChecks).uptimePercentage(uptimePerc)
-								.averageResponetime(averageResponseTime).minResponseTime(min)
+								.averageResponseTime(averageResponseTime).minResponseTime(min)
 								.maxResponseTime(max).build();
 		
 	}

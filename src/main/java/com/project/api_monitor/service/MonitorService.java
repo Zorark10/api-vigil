@@ -25,27 +25,26 @@ public class MonitorService {
 		return monitorRepo.findAll();
 	}
 	
-	public Monitor getMonitorById(Integer id) throws Exception {
+	public Monitor getMonitorById(Integer id) {
 		return monitorRepo.findById(id).orElseThrow(() -> new MonitorNotFoundException(id));
 	}
 	
-	public Monitor updateMonitor(Integer id, Monitor monitor) throws Exception {
-		Monitor monitor2 = monitorRepo.findById(id).orElse(null);
-		if(monitor2 == null)
-			throw new Exception();
-		monitor2.setUrl(monitor.getUrl());
-		monitor2.setName(monitor.getName());
-		monitor2.setHttpMethod(monitor.getHttpMethod());
-		monitor2.setInterval(monitor.getInterval());
-		monitor2.setTimeout(monitor.getTimeout());
-		monitor2.setEnabled(monitor.isEnabled());
-		
-		return monitorRepo.save(monitor2);
+	public Monitor updateMonitor(Integer id, Monitor monitor) {
+		Monitor updated = monitorRepo.findById(id)
+				.orElseThrow(() -> new MonitorNotFoundException(id));
+		updated.setUrl(monitor.getUrl());
+		updated.setName(monitor.getName());
+		updated.setHttpMethod(monitor.getHttpMethod());
+		updated.setInterval(monitor.getInterval());
+		updated.setTimeout(monitor.getTimeout());
+		updated.setEnabled(monitor.isEnabled());
+
+		return monitorRepo.save(updated);
 	}
-	public void deleteMonitor(Integer id) throws Exception {
-		Monitor monitor = monitorRepo.findById(id).orElse(null);
-		if(monitor == null)
-			throw new Exception();
+
+	public void deleteMonitor(Integer id) {
+		Monitor monitor = monitorRepo.findById(id)
+				.orElseThrow(() -> new MonitorNotFoundException(id));
 		monitorRepo.delete(monitor);
 	}
 	
