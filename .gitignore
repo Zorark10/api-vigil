@@ -34,3 +34,19 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Local secrets & config ###
+# Local profile config must never be committed (use the *.example template).
+**/application-local.properties
+.env
+.env.*
+
+### Frontend ###
+frontend/node_modules/
+frontend/dist/
+frontend/*.local
+
+# Node
+npm-debug.log*
+yarn-error.log*
+node_modules/
