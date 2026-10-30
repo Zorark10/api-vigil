@@ -1,20 +1,41 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useHashRoute, usePolling, navigate } from './lib/hooks.js'
 import { getIncidents } from './lib/api.js'
+import { AuthProvider, useAuth } from './lib/auth-context.jsx'
 import { MonitorsPage } from './pages/monitors-page.jsx'
 import { MonitorDetailPage } from './pages/monitor-detail-page.jsx'
 import { IncidentsPage } from './pages/incidents-page.jsx'
+import { LoginPage } from './components/login-page.jsx'
+import { Mark } from './components/mark.jsx'
 
-function Mark() {
+function Wordmark() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
-      <path d="M2 12h4l2.5-7 3 10L14 9h4" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-    </svg>
+    <a className="wordmark" href="#/" onClick={() => (window.location.hash = '#/')}>
+      <Mark />
+      <span>api-monitor</span>
+    </a>
   )
 }
 
-export default function App() {
+function AuthGate() {
+  const { user, initializing } = useAuth()
   const route = useHashRoute()
+
+  if (initializing) {
+    return (
+      <div className="login-wrap" aria-busy="true">
+        <p className="page-note">Checking session…</p>
+      </div>
+    )
+  }
+
+  if (!user) return <LoginPage />
+
+  return <Dashboard route={route} user={user} />
+}
+
+function Dashboard({ route, user }) {
+  const { logout } = useAuth()
   const [openIncidents, setOpenIncidents] = useState([])
 
   const loadOpen = useCallback(async () => {
@@ -33,10 +54,7 @@ export default function App() {
   return (
     <div className="shell">
       <aside className="sidebar" aria-label="Product navigation">
-        <a className="wordmark" href="#/" onClick={() => (window.location.hash = '#/')}>
-          <Mark />
-          <span>api-monitor</span>
-        </a>
+        <Wordmark />
         <nav className="nav">
           <a
             className={`nav-item${route.name === 'monitors' || route.name === 'monitor-detail' ? ' nav-item--active' : ''}`}
@@ -54,6 +72,16 @@ export default function App() {
             {openIncidents.length > 0 && <span className="nav-count num">{openIncidents.length} open</span>}
           </a>
         </nav>
+        <div className="sidebar-user">
+          <span className="sidebar-user-name mono" title={user.username}>{user.username}</span>
+          <button
+            type="button"
+            className="btn btn--ghost btn--small"
+            onClick={() => { logout(); navigate('#/login') }}
+          >
+            Sign out
+          </button>
+        </div>
       </aside>
       <main className="sheet" id="content">
         {route.name === 'monitor-detail' ? (
@@ -65,5 +93,13 @@ export default function App() {
         )}
       </main>
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AuthGate />
+    </AuthProvider>
   )
 }

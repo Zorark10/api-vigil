@@ -1,3 +1,5 @@
+import { getToken, setToken } from './auth.js'
+
 class ApiError extends Error {
   constructor(message, status) {
     super(message)
@@ -6,10 +8,17 @@ class ApiError extends Error {
 }
 
 async function request(path, options = {}) {
-  const res = await fetch(path, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  })
+  const headers = { 'Content-Type': 'application/json' }
+  const token = getToken()
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  const res = await fetch(path, { ...options, headers })
+  if (res.status === 401 && !path.startsWith('/api/auth/login')) {
+    // Session is no longer valid (expired or revoked token): drop it and let
+    // the auth gate send the user back to the sign-in screen.
+    setToken(null)
+    window.location.hash = '#/login'
+  }
   if (!res.ok) {
     let message = `Request failed (${res.status})`
     try {
@@ -23,6 +32,15 @@ async function request(path, options = {}) {
   if (res.status === 204) return null
   return res.json()
 }
+
+export async function login(username, password) {
+  return request('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ username, password }),
+  })
+}
+
+export const getMe = () => request('/api/auth/me')
 
 export const getMonitors = () => request('/api/monitors')
 export const getMonitor = (id) => request(`/api/monitors/${id}`)

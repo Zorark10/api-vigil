@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import * as api from '../lib/api.js'
 import { usePolling } from '../lib/hooks.js'
 import { IncidentRows } from './monitor-detail-page.jsx'
-import { ErrorBlock, LoadingRows } from '../components/states.jsx'
+import { EmptyState, ErrorBlock, LoadingRows } from '../components/states.jsx'
 
 const TABS = [
   { key: '', label: 'All' },

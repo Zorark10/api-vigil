@@ -13,6 +13,7 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
@@ -26,6 +27,7 @@ import com.project.api_monitor.service.IncidentService;
 import com.project.api_monitor.service.MonitorService;
 
 @WebMvcTest(IncidentController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class IncidentControllerTest {
 
 	@Autowired

@@ -50,3 +50,6 @@ frontend/*.local
 npm-debug.log*
 yarn-error.log*
 node_modules/
+
+# Design-skill working files
+.taste-skill/
