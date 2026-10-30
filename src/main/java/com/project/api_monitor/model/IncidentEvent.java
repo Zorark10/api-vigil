@@ -15,6 +15,8 @@ import lombok.Setter;
 @Builder
 public class IncidentEvent {
 	private Integer monitorId;
+	private String monitorName;
+	private String monitorUrl;
 	private Integer incidentId;
 	private IncidentStatus status;
 	private LocalDateTime startedAt;

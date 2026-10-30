@@ -10,6 +10,7 @@ export function useHashRoute() {
   const [page, parts] = hash.replace(/^#/, '').split('/').filter(Boolean)
   if (page === 'monitors' && parts) return { name: 'monitor-detail', id: Number(parts) }
   if (page === 'incidents') return { name: 'incidents' }
+  if (page === 'notifications') return { name: 'notifications' }
   return { name: 'monitors' }
 }
 

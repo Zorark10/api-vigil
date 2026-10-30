@@ -32,6 +32,20 @@ All API endpoints except `POST /api/auth/login` require a valid Bearer JWT. The 
 - On the **first startup with an empty user table**, the backend provisions the initial administrator from `ADMIN_USERNAME` / `ADMIN_PASSWORD`; the password is stored only as a BCrypt hash. Existing users are never overwritten or recreated. Startup fails fast if `ADMIN_PASSWORD` is unset on a fresh database — this is intentional so no account can be silently created without a configured password.
 - Tokens are stateless (HS256, 1 hour by default). To rotate the secret, change `JWT_SECRET` and restart; all existing tokens become invalid. Never reuse a secret that has ever been committed to git — if one ever was, you must also change any credentials that appeared alongside it.
 
+## Email notifications
+
+Incident emails are sent over the existing Gmail SMTP setup (`spring-boot-starter-mail`; `MAIL_USERNAME`, `MAIL_PASSWORD` stay in environment variables and are never exposed to the frontend). The dashboard manages recipients independently:
+
+- `GET/PUT /api/notifications/settings` — the global email switch (`{ "emailEnabled": true|false }`, default on).
+- `GET/POST/PATCH/DELETE /api/notifications/recipients` — recipient addresses stored in the `notification_recipient` table (PostgreSQL; auto-created by `ddl-auto=update`). Adding validates the address and rejects duplicates with `409`; individual recipients can be disabled without deleting them.
+- `POST /api/notifications/test` — sends a test email to all enabled recipients and returns `{ "succeeded", "failed" }`; useful for verifying the SMTP login without waiting for an outage.
+
+Behaviour:
+
+- One email when an incident opens (monitor DOWN) and one when it recovers (RESOLVED) — monitor name, URL, incident id and both timestamps included. The incident-events Kafka stream fires exactly once per incident transition (IncidentService opens/resolves at most one incident per monitor), so consecutive failed checks of the same outage never trigger repeated emails; a new outage after recovery starts a new incident and a new email.
+- Notifications are disabled globally by turning the switch off — recipients stay saved, incidents are still recorded.
+- Reliability: the incident-events consumer never lets a failure escape (malformed payloads are logged and dropped, delivery failures are logged and counted per recipient), and SMTP connect/read/write are bounded to 10 s each, so an email outage cannot stall Kafka processing, monitoring, or incident creation. Email failures don't change what the dashboard shows.
+
 ## Running
 
 ```bash
@@ -66,6 +80,17 @@ Every other endpoint below requires an `Authorization: Bearer <token>` header.
 |---|---|---|
 | GET | `/api/monitors/{id}/incidents` | paginated incident history, newest first |
 | GET | `/api/incidents?status=OPEN\|RESOLVED` | paginated; filter optional |
+
+### Email notifications
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/notifications/settings` | global on/off switch |
+| PUT | `/api/notifications/settings` | update switch |
+| GET | `/api/notifications/recipients` | list recipients |
+| POST | `/api/notifications/recipients` | add (validated, 409 on duplicate) |
+| PATCH | `/api/notifications/recipients/{id}` | enable/disable, 404 if unknown |
+| DELETE | `/api/notifications/recipients/{id}` | remove, 404 if unknown |
+| POST | `/api/notifications/test` | test email to enabled recipients |
 
 ## JSON contract
 

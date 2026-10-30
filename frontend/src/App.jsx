@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './lib/auth-context.jsx'
 import { MonitorsPage } from './pages/monitors-page.jsx'
 import { MonitorDetailPage } from './pages/monitor-detail-page.jsx'
 import { IncidentsPage } from './pages/incidents-page.jsx'
+import { NotificationsPage } from './pages/notifications-page.jsx'
 import { LoginPage } from './components/login-page.jsx'
 import { Mark } from './components/mark.jsx'
 
@@ -71,6 +72,13 @@ function Dashboard({ route, user }) {
             Incidents
             {openIncidents.length > 0 && <span className="nav-count num">{openIncidents.length} open</span>}
           </a>
+          <a
+            className={`nav-item${route.name === 'notifications' ? ' nav-item--active' : ''}`}
+            href="#/notifications"
+            onClick={(e) => { e.preventDefault(); navigate('#/notifications') }}
+          >
+            Notifications
+          </a>
         </nav>
         <div className="sidebar-user">
           <span className="sidebar-user-name mono" title={user.username}>{user.username}</span>
@@ -88,6 +96,8 @@ function Dashboard({ route, user }) {
           <MonitorDetailPage id={route.id} />
         ) : route.name === 'incidents' ? (
           <IncidentsPage />
+        ) : route.name === 'notifications' ? (
+          <NotificationsPage />
         ) : (
           <MonitorsPage openIncidents={openIncidents} />
         )}

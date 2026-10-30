@@ -34,6 +34,8 @@ public class IncidentService {
 										.resolvedAt(null).build();
 					incidentRepo.save(incident);
 					IncidentEvent event = IncidentEvent.builder().monitorId(incident.getMonitor().getId())
+											.monitorName(incident.getMonitor().getName())
+											.monitorUrl(incident.getMonitor().getUrl())
 											.incidentId(incident.getId()).status(IncidentStatus.OPEN)
 											.startedAt(incident.getStartedAt()).resolvedAt(null)
 											.build();
@@ -49,6 +51,8 @@ public class IncidentService {
 					incidentRepo.save(incident);
 					
 					IncidentEvent event = IncidentEvent.builder().monitorId(incident.getMonitor().getId())
+							.monitorName(incident.getMonitor().getName())
+							.monitorUrl(incident.getMonitor().getUrl())
 							.incidentId(incident.getId()).status(IncidentStatus.RESOLVED)
 							.startedAt(incident.getStartedAt()).resolvedAt(incident.getResolvedAt())
 							.build();

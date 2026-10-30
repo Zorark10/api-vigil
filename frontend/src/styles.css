@@ -872,6 +872,53 @@ h1 {
   gap: 8px;
 }
 
+/* ---- notifications ---- */
+
+.notice {
+  font-size: var(--fs-body);
+  padding: 10px 14px;
+  border-radius: var(--radius-control);
+  background: var(--raised);
+  color: var(--muted);
+}
+
+.notice--ok {
+  background: var(--pill-positive-bg);
+  color: var(--pill-positive-ink);
+}
+
+.recipient-form {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) auto;
+  gap: 10px 16px;
+  align-items: end;
+  max-width: 520px;
+}
+
+.recipient-form .btn {
+  height: 38px;
+}
+
+.recipient-list {
+  margin-top: 16px;
+  border-top: 0;
+}
+
+.recipient-row {
+  align-items: center;
+}
+
+.recipient-actions {
+  display: flex;
+  gap: 4px;
+}
+
+@media (max-width: 640px) {
+  .recipient-form {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ---- dialog ---- */
 
 .dialog-backdrop {
@@ -912,21 +959,36 @@ h1 {
   }
 
   .sidebar {
+    display: grid;
+    grid-auto-flow: row;
+    gap: 6px;
     flex-direction: row;
     align-items: center;
     padding: 8px 16px;
   }
 
+  .wordmark {
+    width: max-content;
+    flex: none;
+  }
+
   .nav {
     flex-direction: row;
-    margin-left: auto;
+    flex-wrap: wrap;
+    row-gap: 4px;
+    margin-left: 0;
     gap: 4px;
+  }
+
+  .sidebar-user-name {
+    display: none;
   }
 
   .sidebar-user {
     margin-top: 0;
     border-top: 0;
     padding: 0;
+    justify-content: flex-end;
   }
 
   .nav-item {

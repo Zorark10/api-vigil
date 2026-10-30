@@ -70,6 +70,19 @@ const incidents = [
   { id: 1, monitorId: 3, status: 'RESOLVED', startedAt: iso(8200), resolvedAt: iso(8192) },
 ]
 
+// Preview session: a signed-in session so authed screens can be inspected.
+sessionStorage.setItem('am.token', 'preview-token')
+
+const user = { username: 'admin', role: 'ADMIN', createdAt: iso(60 * 24 * 30) }
+
+let notificationSettings = { emailEnabled: true }
+
+let recipients = [
+  { id: 1, email: 'ops@quayline.net', enabled: true, createdAt: iso(320) },
+  { id: 2, email: 'oncall@harborlight.dev', enabled: true, createdAt: iso(260) },
+  { id: 3, email: 'security@harborlight.dev', enabled: false, createdAt: iso(180) },
+]
+
 function page(list) {
   return { content: list, totalElements: list.length, totalPages: 1, number: 0, size: list.length || 1 }
 }
@@ -84,28 +97,57 @@ window.fetch = async (input, init) => {
   const method = (init?.method ?? 'GET').toUpperCase()
   const bodyJson = init?.body ? JSON.parse(init.body) : null
 
-  if (path.startsWith('/api')) {
-    let m
-    if (path === '/api/monitors' && method === 'POST') return j({ id: 6, ...bodyJson })
-    if ((m = path.match(/^\/api\/monitors\/(\d+)$/)) && method === 'PATCH') return j(monitors.find((x) => x.id === +m[1]))
-    if (path.startsWith('/api/monitors/') && method === 'DELETE') return new Response(null, { status: 204 })
-    if (path === '/api/monitors' && method === 'GET') return j(monitors)
-    if ((m = path.match(/^\/api\/monitors\/(\d+)$/)) && method === 'GET') return j(monitors.find((x) => x.id === +m[1]) ?? null)
-    if ((m = path.match(/^\/api\/monitors\/(\d+)\/status$/))) return j(statusById[+m[1]] ?? null)
-    if ((m = path.match(/^\/api\/monitors\/(\d+)\/statistics$/))) return j(stats(+m[1]))
-    if ((m = path.match(/^\/api\/monitors\/(\d+)\/results$/))) {
-      const rows = seriesFor(+m[1])
-      const p = Number(query.get('page') ?? 0)
-      const size = Number(query.get('size') ?? 20)
-      return j({
-        content: rows.slice(p * size, (p + 1) * size),
-        totalElements: rows.length,
-        totalPages: Math.max(1, Math.ceil(rows.length / size)),
-        number: p,
-        size,
-      })
-    }
-    if ((m = path.match(/^\/api\/monitors\/(\d+)\/incidents$/))) return j(page(incidents.filter((i) => i.monitorId === +m[1])))
+    if (path.startsWith('/api')) {
+      let m
+      if (path === '/api/auth/login' && method === 'POST') return j({ token: 'preview-token', tokenType: 'Bearer' })
+      if (path === '/api/auth/me') return j(user)
+      if (path === '/api/notifications/settings' && method === 'GET') return j(notificationSettings)
+      if (path === '/api/notifications/settings' && method === 'PUT') {
+        notificationSettings = { emailEnabled: Boolean(bodyJson?.emailEnabled) }
+        return j(notificationSettings)
+      }
+      if (path === '/api/notifications/recipients' && method === 'GET') return j(recipients)
+      if (path === '/api/notifications/recipients' && method === 'POST') {
+        const email = String(bodyJson?.email ?? '').trim().toLowerCase()
+        const existing = recipients.find((r) => r.email === email)
+        if (existing) {
+          return new Response(JSON.stringify({ status: 409, message: 'This email address is already a notification recipient' }), {
+            status: 409,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        }
+        const created = { id: Math.max(0, ...recipients.map((r) => r.id)) + 1, email, enabled: true, createdAt: iso(0) }
+        recipients = [...recipients, created]
+        return new Response(JSON.stringify(created), { status: 201, headers: { 'Content-Type': 'application/json' } })
+      }
+      if ((m = path.match(/^\/api\/notifications\/recipients\/(\d+)$/)) && method === 'PATCH') {
+        recipients = recipients.map((r) => (r.id === +m[1] ? { ...r, enabled: Boolean(bodyJson?.enabled) } : r))
+        return j(recipients.find((r) => r.id === +m[1]))
+      }
+      if (path.match(/^\/api\/notifications\/recipients\/\d+$/) && method === 'DELETE') {
+        return new Response(null, { status: 204 })
+      }
+      if (path === '/api/notifications/test' && method === 'POST') return j({ succeeded: 2, failed: 0 })
+      if (path === '/api/monitors' && method === 'POST') return j({ id: 6, ...bodyJson })
+      if ((m = path.match(/^\/api\/monitors\/(\d+)$/)) && method === 'PATCH') return j(monitors.find((x) => x.id === +m[1]))
+      if (path.startsWith('/api/monitors/') && method === 'DELETE') return new Response(null, { status: 204 })
+      if (path === '/api/monitors' && method === 'GET') return j(monitors)
+      if ((m = path.match(/^\/api\/monitors\/(\d+)$/)) && method === 'GET') return j(monitors.find((x) => x.id === +m[1]) ?? null)
+      if ((m = path.match(/^\/api\/monitors\/(\d+)\/status$/))) return j(statusById[+m[1]] ?? null)
+      if ((m = path.match(/^\/api\/monitors\/(\d+)\/statistics$/))) return j(stats(+m[1]))
+      if ((m = path.match(/^\/api\/monitors\/(\d+)\/results$/))) {
+        const rows = seriesFor(+m[1])
+        const p = Number(query.get('page') ?? 0)
+        const size = Number(query.get('size') ?? 20)
+        return j({
+          content: rows.slice(p * size, (p + 1) * size),
+          totalElements: rows.length,
+          totalPages: Math.max(1, Math.ceil(rows.length / size)),
+          number: p,
+          size,
+        })
+      }
+      if ((m = path.match(/^\/api\/monitors\/(\d+)\/incidents$/))) return j(page(incidents.filter((i) => i.monitorId === +m[1])))
     if (path === '/api/incidents') {
       const status = query.get('status')
       const filtered = status ? incidents.filter((i) => i.status === status) : incidents

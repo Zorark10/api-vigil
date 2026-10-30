@@ -64,3 +64,25 @@ export const getIncidents = (status, page = 0, size = 20) => {
 
 export const getIncidentsForMonitor = (id, page = 0, size = 20) =>
   request(`/api/monitors/${id}/incidents?page=${page}&size=${size}`)
+
+export const getNotificationSettings = () => request('/api/notifications/settings')
+export const updateNotificationSettings = (emailEnabled) =>
+  request('/api/notifications/settings', {
+    method: 'PUT',
+    body: JSON.stringify({ emailEnabled }),
+  })
+
+export const getRecipients = () => request('/api/notifications/recipients')
+export const addRecipient = (email) =>
+  request('/api/notifications/recipients', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
+export const updateRecipient = (id, enabled) =>
+  request(`/api/notifications/recipients/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ enabled }),
+  })
+export const removeRecipient = (id) =>
+  request(`/api/notifications/recipients/${id}`, { method: 'DELETE' })
+export const sendTestEmail = () => request('/api/notifications/test', { method: 'POST' })

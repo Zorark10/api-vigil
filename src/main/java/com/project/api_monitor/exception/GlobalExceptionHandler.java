@@ -24,6 +24,32 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
     }
 
+    @ExceptionHandler(RecipientNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleRecipientNotFound(
+            RecipientNotFoundException ex) {
+
+        ErrorResponse response = new ErrorResponse(
+                HttpStatus.NOT_FOUND.value(),
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
+    @ExceptionHandler(DuplicateRecipientException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateRecipient(
+            DuplicateRecipientException ex) {
+
+        ErrorResponse response = new ErrorResponse(
+                HttpStatus.CONFLICT.value(),
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
     @ExceptionHandler(MonitorNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleMonitorNotFound(
             MonitorNotFoundException ex) {
