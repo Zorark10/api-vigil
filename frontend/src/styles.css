@@ -130,6 +130,13 @@ a {
   height: 38px;
 }
 
+.login-foot {
+  border-top: 1px solid var(--rule);
+  padding-top: 12px;
+  font-size: var(--fs-small);
+  color: var(--muted);
+}
+
 /* ---- shell: tinted L-frame, flush white sheet, one rule ---- */
 
 .shell {
@@ -333,6 +340,19 @@ h1 {
 
 .btn--danger {
   border-color: var(--negative);
+}
+
+.btn--danger-solid {
+  background: var(--negative);
+  color: #fff;
+}
+
+.btn--danger-solid:hover:not(:disabled) {
+  background: #a81d22;
+}
+
+.btn--secondary:hover:not(:disabled) {
+  background: var(--raised);
 }
 
 :focus-visible {
@@ -679,10 +699,8 @@ h1 {
   gap: 3px;
 }
 
-.status-cell {
-  width: 10px;
-  height: 18px;
-  border-radius: 3px;
+.status-cell--empty {
+  background: var(--active);
 }
 
 .status-cell--up {
@@ -694,16 +712,26 @@ h1 {
   background: var(--negative);
 }
 
-.status-cell--empty {
-  background: var(--active);
+.status-cell {
+  width: 10px;
+  height: 20px;
+  border-radius: 3px;
 }
 
-.row-confirm {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--fs-small);
+.method-chip {
+  display: inline-block;
+  font-size: 11px;
+  line-height: 1;
+  padding: 3px 6px;
+  margin-right: 6px;
+  border-radius: 4px;
+  background: var(--raised);
   color: var(--muted);
+  vertical-align: 1px;
+}
+
+.monitor-card:hover {
+  background: var(--ground);
 }
 
 .monitor-cell--actions {
@@ -949,6 +977,29 @@ h1 {
 .dialog-head h2 {
   font-size: var(--fs-section);
   font-weight: 600;
+}
+
+.dialog-body {
+  gap: 14px;
+}
+
+.dialog-body p {
+  color: var(--text);
+}
+
+.dialog-object {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dialog-error {
+  font-size: var(--fs-small);
+  color: var(--pill-negative-ink);
+  background: var(--pill-negative-bg);
+  border-radius: var(--radius-control);
+  padding: 8px 10px;
 }
 
 /* ---- phone ---- */

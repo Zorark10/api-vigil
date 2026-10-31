@@ -1,11 +1,12 @@
 package com.project.api_monitor.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -17,8 +18,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -63,7 +62,7 @@ class IncidentNotificationTest {
 	private IncidentEventProducer incidentEventProducer;
 
 	@MockitoBean
-	private JavaMailSender mailSender;
+	private EmailJsClient emailJsClient;
 
 	private Monitor monitor;
 
@@ -170,19 +169,21 @@ class IncidentNotificationTest {
 				.resolvedAt(null)
 				.build());
 
-		ArgumentCaptor<SimpleMailMessage> mails = ArgumentCaptor.forClass(SimpleMailMessage.class);
-		verify(mailSender, times(2)).send(mails.capture());
+		ArgumentCaptor<String> recipients = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<String> subjects = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<String> bodies = ArgumentCaptor.forClass(String.class);
+		verify(emailJsClient, times(2)).send(recipients.capture(), subjects.capture(), bodies.capture());
 
-		List<SimpleMailMessage> sent = mails.getAllValues();
-		assertThat(sent).extracting(mail -> mail.getTo()[0])
+		assertThat(recipients.getAllValues())
 				.containsExactlyInAnyOrder("alice@example.com", "carol@example.com");
-
-		SimpleMailMessage oneMail = sent.get(0);
-		assertThat(oneMail.getSubject()).isEqualTo("[api-monitor] DOWN: Billing API");
-		assertThat(oneMail.getText())
-				.contains("https://billing.example.com/health", "Incident: #42", "DOWN",
-						"Started at: " + startedAt.format(STAMP),
-						"No further DOWN emails will be sent for this incident until it recovers.");
+		assertThat(subjects.getAllValues())
+				.containsExactly("[api-monitor] DOWN: Billing API", "[api-monitor] DOWN: Billing API");
+		assertThat(bodies.getAllValues()).allSatisfy(body -> {
+			assertThat(body).contains(
+					"https://billing.example.com/health", "Incident: #42", "DOWN",
+					"Started at: " + startedAt.format(STAMP),
+					"No further DOWN emails will be sent for this incident until it recovers.");
+		});
 	}
 
 	@Test
@@ -201,12 +202,14 @@ class IncidentNotificationTest {
 				.resolvedAt(resolvedAt)
 				.build());
 
-		ArgumentCaptor<SimpleMailMessage> mails = ArgumentCaptor.forClass(SimpleMailMessage.class);
-		verify(mailSender, times(1)).send(mails.capture());
+		ArgumentCaptor<String> recipients = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<String> subjects = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<String> bodies = ArgumentCaptor.forClass(String.class);
+		verify(emailJsClient, times(1)).send(recipients.capture(), subjects.capture(), bodies.capture());
 
-		SimpleMailMessage mail = mails.getValue();
-		assertThat(mail.getSubject()).isEqualTo("[api-monitor] RECOVERED: Billing API");
-		assertThat(mail.getText())
+		assertThat(recipients.getValue()).isEqualTo("alice@example.com");
+		assertThat(subjects.getValue()).isEqualTo("[api-monitor] RECOVERED: Billing API");
+		assertThat(bodies.getValue())
 				.contains("https://billing.example.com/health",
 						"Started at: " + startedAt.format(STAMP),
 						"Resolved at: " + resolvedAt.format(STAMP));
@@ -222,20 +225,20 @@ class IncidentNotificationTest {
 				.incidentId(42).status(IncidentStatus.OPEN)
 				.startedAt(LocalDateTime.now().minusMinutes(5)).resolvedAt(null).build());
 
-		verify(mailSender, never()).send(any(SimpleMailMessage.class));
+		verify(emailJsClient, never()).send(any(), any(), any());
 	}
 
 	@Test
 	void deliveryFailureDoesNotPropagate() {
 		recipient("alice@example.com", true);
-		doThrow(new RuntimeException("SMTP unavailable")).when(mailSender)
-				.send(any(SimpleMailMessage.class));
+		when(emailJsClient.send(any(), any(), any())).thenReturn(false);
 
-		notificationService.handleIncidentEvent(IncidentEvent.builder()
+		assertThatCode(() -> notificationService.handleIncidentEvent(IncidentEvent.builder()
 				.monitorId(monitor.getId()).monitorName(monitor.getName()).monitorUrl(monitor.getUrl())
 				.incidentId(42).status(IncidentStatus.OPEN)
-				.startedAt(LocalDateTime.now().minusMinutes(5)).resolvedAt(null).build());
+				.startedAt(LocalDateTime.now().minusMinutes(5)).resolvedAt(null).build()))
+				.doesNotThrowAnyException();
 
-		verify(mailSender, times(1)).send(any(SimpleMailMessage.class));
+		verify(emailJsClient, times(1)).send(any(), any(), any());
 	}
 }

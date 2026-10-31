@@ -14,8 +14,10 @@ import com.project.api_monitor.model.MonitorResult;
 
 public interface MonitorResultRepo extends JpaRepository<MonitorResult, Integer>{
 	public List<MonitorResult> findByMonitor(Monitor monitor);
-	
+
 	public Optional<MonitorResult> findFirstByMonitorOrderByCheckedAtDesc(Monitor monitor);
-	
+
 	public Page<MonitorResult> findByMonitor(Monitor monitor, Pageable pageable);
+
+	public void deleteByMonitor(Monitor monitor);
 }

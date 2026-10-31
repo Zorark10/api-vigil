@@ -16,6 +16,15 @@ target/
 .springBeans
 .sts4-cache
 
+# AI coding agent configurations and downloaded skills
+.agent/
+.agents/
+.gemini/
+.impeccable/
+.opencode/
+.taste-skill/
+skills-lock.json
+
 ### IntelliJ IDEA ###
 .idea
 *.iws

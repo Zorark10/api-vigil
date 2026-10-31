@@ -25,18 +25,14 @@ spring.kafka.consumer.key-deserializer=org.apache.kafka.common.serialization.Str
 spring.kafka.consumer.value-deserializer=org.apache.kafka.common.serialization.StringDeserializer
 spring.kafka.consumer.group-id=monitor-check-group
 
-spring.mail.host=smtp.gmail.com
-spring.mail.port=587
-spring.mail.username=${MAIL_USERNAME}
-spring.mail.password=${MAIL_PASSWORD}
-spring.mail.properties.mail.smtp.auth=true
-spring.mail.properties.mail.smtp.starttls.enable=true
-
-# Bounded SMTP timeouts so a slow mail server can never stall the
-# incident-events consumer for minutes.
-spring.mail.properties.mail.smtp.connectiontimeout=10000
-spring.mail.properties.mail.smtp.timeout=10000
-spring.mail.properties.mail.smtp.writetimeout=10000
+# Email delivery through the EmailJS REST API; credentials stay in
+# environment variables. Recipients are managed in the dashboard.
+app.emailjs.service-id=${EMAILJS_SERVICE_ID}
+app.emailjs.template-id=${EMAILJS_TEMPLATE_ID}
+app.emailjs.public-key=${EMAILJS_PUBLIC_KEY}
+app.emailjs.private-key=${EMAILJS_PRIVATE_KEY}
+# Pacing honouring EmailJS's one-request-per-second limit (ms between sends).
+app.emailjs.min-interval-ms=1100
 
 # CORS origins allowed to call the API from a browser dev server
 app.cors.allowed-origins=http://localhost:5173

@@ -16,4 +16,6 @@ public interface IncidentRepository extends JpaRepository<Incident, Integer>{
 	public Page<Incident> findByMonitorOrderByStartedAtDesc(Monitor monitor, Pageable pageable);
 
 	public Page<Incident> findByStatusOrderByStartedAtDesc(IncidentStatus status, Pageable pageable);
+
+	public void deleteByMonitor(Monitor monitor);
 }

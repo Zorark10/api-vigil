@@ -12,7 +12,7 @@ function testNotice(result) {
     return { kind: 'note', text: 'No enabled recipients to write to. Add or enable one below and try again.' }
   }
   if (failed > 0) {
-    return { kind: 'note', text: `Delivered to ${succeeded} recipient${succeeded === 1 ? '' : 's'}; ${failed} failed — this is usually the SMTP login or network, not the address.` }
+    return { kind: 'note', text: `Delivered to ${succeeded} recipient${succeeded === 1 ? '' : 's'}; ${failed} failed — this is usually the EmailJS configuration or network, not the address.` }
   }
   return { kind: 'ok', text: `Test email delivered to ${succeeded} enabled recipient${succeeded === 1 ? '' : 's'}.` }
 }

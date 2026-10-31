@@ -1,6 +1,6 @@
 # api-monitor
 
-Self-hosted uptime monitoring backend (Spring Boot 4, Java 21) with a planned web dashboard (React + Vite). Monitors watch HTTP endpoints on an interval; the Kafka → Redis → Postgres event flow records check results, computes statistics, opens/resolves incidents, and sends Gmail email alerts.
+Self-hosted uptime monitoring backend (Spring Boot 4, Java 21) with a planned web dashboard (React + Vite). Monitors watch HTTP endpoints on an interval; the Kafka → Redis → Postgres event flow records check results, computes statistics, opens/resolves incidents, and sends email alerts through EmailJS.
 
 ## Configuration & secrets
 
@@ -10,8 +10,10 @@ Real credentials are **never committed**. They are supplied as environment varia
 |---|---|
 | `DB_USERNAME` | PostgreSQL user |
 | `DB_PASSWORD` | PostgreSQL password |
-| `MAIL_USERNAME` | Gmail address for SMTP alerts |
-| `MAIL_PASSWORD` | Gmail **App Password** (2FA required) |
+| `EMAILJS_SERVICE_ID` | EmailJS service id — **required for email delivery** |
+| `EMAILJS_TEMPLATE_ID` | EmailJS notification template id — **required for email delivery** |
+| `EMAILJS_PUBLIC_KEY` | EmailJS public key (sent as `user_id`) — **required for email delivery** |
+| `EMAILJS_PRIVATE_KEY` | EmailJS private key (sent as `accessToken` for server-side calls) — **required for email delivery** |
 | `JWT_SECRET` | HMAC secret for JWT signing — **required**, at least 32 characters (generate: `openssl rand -base64 48`) |
 | `JWT_EXPIRATION` | Token lifetime (ISO-8601 duration, default `PT1H`) |
 | `ADMIN_USERNAME` | Initial administrator username (default `admin`) |
@@ -34,17 +36,38 @@ All API endpoints except `POST /api/auth/login` require a valid Bearer JWT. The 
 
 ## Email notifications
 
-Incident emails are sent over the existing Gmail SMTP setup (`spring-boot-starter-mail`; `MAIL_USERNAME`, `MAIL_PASSWORD` stay in environment variables and are never exposed to the frontend). The dashboard manages recipients independently:
+Email delivery goes through **EmailJS** (https://www.emailjs.com), called from the backend's REST client — no Java Mail / SMTP integration exists in the project. The backend is the only place that holds EmailJS credentials: dashboard users only ever enter **recipient email addresses**. Nobody using the dashboard ever provides Gmail passwords, SMTP credentials, or any API key.
+
+The dashboard manages recipients independently:
 
 - `GET/PUT /api/notifications/settings` — the global email switch (`{ "emailEnabled": true|false }`, default on).
 - `GET/POST/PATCH/DELETE /api/notifications/recipients` — recipient addresses stored in the `notification_recipient` table (PostgreSQL; auto-created by `ddl-auto=update`). Adding validates the address and rejects duplicates with `409`; individual recipients can be disabled without deleting them.
-- `POST /api/notifications/test` — sends a test email to all enabled recipients and returns `{ "succeeded", "failed" }`; useful for verifying the SMTP login without waiting for an outage.
+- `POST /api/notifications/test` — sends a test email to all enabled recipients and returns `{ "succeeded", "failed" }`; useful for verifying the EmailJS setup without waiting for an outage.
+
+### EmailJS setup (one-time, done by whoever operates the backend)
+
+Dashboard users configure nothing beyond entering their email address in the dashboard — all of the following is backend setup, and its credentials are only environment variables:
+
+1. **Create an EmailJS account** at https://www.emailjs.com (free tier is enough to start; check its monthly email quota for larger setups).
+2. **Connect an email service**: EmailJS dashboard → *Email Services* → *Add New Email Service*, choose Gmail (or any provider EmailJS supports), sign in with the sending mailbox, and copy the resulting **Service ID**. The sending Gmail account signs in with Google OAuth inside EmailJS — no app password is required anywhere in this project.
+3. **Create the notification template**: *Email Templates* → *Add New Template* → *Create New Template*:
+   - **Subject**: exactly `{{subject}}` (the backend fills the incident subject, e.g. `[api-monitor] DOWN: Billing API`).
+   - **Content**: must contain `{{message}}` — that is where the incident details are placed. Suggested content:
+     ```
+     {{message}}
+     ```
+   - **To Email**: exactly `{{to_email}}` — the **dynamic recipient field**. Each request passes one recipient address here, so one template serves every dashboard-managed recipient.
+   - Save the template and copy its **Template ID**.
+4. **Enable API requests for non-browser applications**: EmailJS dashboard → *Account* → *Security* → turn on API access for non-browser applications. Server-side REST calls carry the **Private Key** as `accessToken`; without this setting the backend's requests are rejected. (The frontend never calls EmailJS itself — there is no browser SDK in the React app.)
+5. **Set the backend environment variables** before starting the API (`$env:EMAILJS_SERVICE_ID = "..."` on PowerShell / `export EMAILJS_SERVICE_ID=...` on Bash; keep them out of any tracked file):
+   - `EMAILJS_SERVICE_ID`, `EMAILJS_TEMPLATE_ID`, `EMAILJS_PUBLIC_KEY`, `EMAILJS_PRIVATE_KEY`.
+   - If any is missing, requests are skipped with an `EmailJS is not configured` log entry instead of failing startup.
 
 Behaviour:
 
 - One email when an incident opens (monitor DOWN) and one when it recovers (RESOLVED) — monitor name, URL, incident id and both timestamps included. The incident-events Kafka stream fires exactly once per incident transition (IncidentService opens/resolves at most one incident per monitor), so consecutive failed checks of the same outage never trigger repeated emails; a new outage after recovery starts a new incident and a new email.
 - Notifications are disabled globally by turning the switch off — recipients stay saved, incidents are still recorded.
-- Reliability: the incident-events consumer never lets a failure escape (malformed payloads are logged and dropped, delivery failures are logged and counted per recipient), and SMTP connect/read/write are bounded to 10 s each, so an email outage cannot stall Kafka processing, monitoring, or incident creation. Email failures don't change what the dashboard shows.
+- Reliability: delivery happens on the incident-events consumer thread (asynchronous to monitoring/incident processing), never lets a failure escape (malformed payloads are logged and dropped, delivery failures are logged and counted per recipient), HTTP connect is bounded to 10 s and each request to 15 s, and EmailJS's one-request-per-second limit is honoured by strictly spaced sequential sends with a single retry on `429`. An EmailJS outage cannot stall Kafka processing, monitoring, or incident creation, and email failures don't change what the dashboard shows.
 
 ## Running
 

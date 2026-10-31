@@ -1,10 +1,11 @@
 import { useCallback, useState } from 'react'
 import * as api from '../lib/api.js'
-import { fmtDateTime, fmtDuration, fmtMs, fmtPercent, fmtRelative, parseDate } from '../lib/format.js'
+import { fmtDateTime, fmtDuration, fmtMs, fmtPercent, fmtRelative } from '../lib/format.js'
 import { usePolling, useNow } from '../lib/hooks.js'
 import { StatusBadge, IncidentBadge } from '../components/status.jsx'
 import { ResponseTimeChart } from '../components/chart.jsx'
 import { MonitorForm } from '../components/monitor-form.jsx'
+import { DeleteMonitorDialog } from '../components/delete-monitor-dialog.jsx'
 import { EmptyState, ErrorBlock, LoadingRows } from '../components/states.jsx'
 import { navigate } from '../lib/hooks.js'
 
@@ -53,11 +54,6 @@ export function MonitorDetailPage({ id }) {
     }
   }
 
-  const deleteMonitor = async () => {
-    await api.deleteMonitor(id)
-    navigate('#/')
-  }
-
   if (loading && !data) return <LoadingRows rows={6} />
   if (error && !data)
     return (
@@ -96,23 +92,19 @@ export function MonitorDetailPage({ id }) {
           <button type="button" className="btn btn--secondary" onClick={() => setEditing(true)}>
             Edit
           </button>
-          {confirmingDelete ? (
-            <span className="row-confirm">
-              Delete?
-              <button type="button" className="btn btn--small btn--danger" onClick={deleteMonitor}>
-                Yes, delete
-              </button>
-              <button type="button" className="btn btn--small btn--ghost" onClick={() => setConfirmingDelete(false)}>
-                Cancel
-              </button>
-            </span>
-          ) : (
-            <button type="button" className="btn btn--secondary btn--danger-text" onClick={() => setConfirmingDelete(true)}>
-              Delete
-            </button>
-          )}
+          <button type="button" className="btn btn--secondary btn--danger-text" onClick={() => setConfirmingDelete(true)}>
+            Delete
+          </button>
         </div>
       </header>
+
+      {confirmingDelete && (
+        <DeleteMonitorDialog
+          monitor={monitor}
+          onClose={() => setConfirmingDelete(false)}
+          onDeleted={() => navigate('#/')}
+        />
+      )}
 
       {stats ? (
         <div className="kpi-strip">

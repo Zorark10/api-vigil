@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import * as api from '../lib/api.js'
 import { usePolling } from '../lib/hooks.js'
 import { IncidentRows } from './monitor-detail-page.jsx'
@@ -17,17 +17,26 @@ export function IncidentsPage() {
   const [monitors, setMonitors] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const requestSeq = useRef(0)
 
   const load = useCallback(async () => {
+    const seq = requestSeq.current + 1
+    requestSeq.current = seq
     try {
-      const [incidents, monitorList] = await Promise.all([api.getIncidents(tab || null, page, 20), api.getMonitors().catch(() => [])])
+      const [incidents, monitorList] = await Promise.all([
+        api.getIncidents(tab || null, page, 20),
+        api.getMonitors().catch(() => []),
+      ])
+      // A newer request (another tab switch) has taken over; drop this one.
+      if (seq !== requestSeq.current) return
       setData(incidents)
       setMonitors(monitorList)
       setError(null)
     } catch (e) {
+      if (seq !== requestSeq.current) return
       setError(e)
     } finally {
-      setLoading(false)
+      if (seq === requestSeq.current) setLoading(false)
     }
   }, [tab, page])
 
@@ -43,8 +52,14 @@ export function IncidentsPage() {
   }
 
   const switchTab = (key) => {
+    if (key === tab) return
     setTab(key)
     setPage(0)
+    // The previous tab's rows must not linger in the new tab: show the
+    // loading state immediately and let the (immediate, guarded) refetch
+    // fill in the filtered records.
+    setData(null)
+    setLoading(true)
   }
 
   return (
@@ -53,7 +68,7 @@ export function IncidentsPage() {
         <div>
           <h1>Incidents</h1>
           <p className="finding">
-            {data ? `${data.totalElements} incidents` : ''}
+            {data ? `${data.totalElements} incident${data.totalElements === 1 ? '' : 's'}` : ''}
             {tab === 'OPEN' ? ' · unresolved only' : tab === 'RESOLVED' ? ' · resolved only' : ''}
           </p>
         </div>

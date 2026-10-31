@@ -4,6 +4,7 @@ import { fmtMs, fmtRelative } from '../lib/format.js'
 import { usePolling, useNow } from '../lib/hooks.js'
 import { StatusBadge, EnabledBadge, StatusPulse } from '../components/status.jsx'
 import { MonitorForm } from '../components/monitor-form.jsx'
+import { DeleteMonitorDialog } from '../components/delete-monitor-dialog.jsx'
 import { EmptyState, ErrorBlock, LoadingRows } from '../components/states.jsx'
 import { IncidentRows } from './monitor-detail-page.jsx'
 
@@ -61,9 +62,8 @@ export function MonitorsPage({ openIncidents }) {
     }
   }
 
-  const confirmDelete = async (monitor) => {
+  const monitorDeleted = async () => {
     setConfirmingDelete(null)
-    await api.deleteMonitor(monitor.id)
     await load()
   }
 
@@ -120,7 +120,9 @@ export function MonitorsPage({ openIncidents }) {
         <div className="monitor-list">
           {data.monitors.map((m) => {
             const status = data.statusById[m.id]
-            const deleting = confirmingDelete === m.id
+            const recent = data.resultsById[m.id]?.content ?? []
+            const chron = [...recent].reverse().filter((r) => r.status === 'UP' || r.status === 'DOWN')
+            const okCount = chron.filter((r) => r.status === 'UP').length
             return (
               <article key={m.id} className="monitor-card">
                 <div className="monitor-main">
@@ -128,7 +130,10 @@ export function MonitorsPage({ openIncidents }) {
                     <a className="monitor-name" href={`#/monitors/${m.id}`}>
                       {m.name}
                     </a>
-                    <span className="monitor-url mono">{m.url}</span>
+                    <span className="monitor-url mono">
+                      <span className="method-chip num">{m.httpMethod}</span>
+                      {m.url}
+                    </span>
                     <div className="monitor-tags">
                       <EnabledBadge enabled={m.enabled} />
                       {openIncidents.some((i) => i.monitorId === m.id) && <span className="pill pill--negative">incident open</span>}
@@ -149,36 +154,34 @@ export function MonitorsPage({ openIncidents }) {
                     <span className="cell-value num">{status?.checkedAt ? fmtRelative(status.checkedAt, now) : '—'}</span>
                   </div>
                   <div className="monitor-cell">
-                    <span className="cell-label">Every {m.interval}s</span>
-                    <StatusPulse results={data.resultsById[m.id]?.content ?? null} />
+                    <span className="cell-label">Last {chron.length > 0 ? chron.length : 0} checks</span>
+                    <StatusPulse results={recent} />
+                    <span className="cell-unit num">
+                      {chron.length > 0 ? `${okCount}/${chron.length} ok` : '—'}
+                      {' · '}every {m.interval}s
+                    </span>
                   </div>
                   <div className="monitor-cell monitor-cell--actions">
-                    {deleting ? (
-                      <span className="row-confirm">
-                        Delete?
-                        <button type="button" className="btn btn--small btn--danger" onClick={() => confirmDelete(m)}>
-                          Yes, delete
-                        </button>
-                        <button type="button" className="btn btn--small btn--ghost" onClick={() => setConfirmingDelete(null)}>
-                          Cancel
-                        </button>
-                      </span>
-                    ) : (
-                      <>
-                        <button type="button" className="btn btn--small btn--ghost" onClick={() => setEditing(m)}>
-                          Edit
-                        </button>
-                        <button type="button" className="btn btn--small btn--ghost btn--danger-text" onClick={() => setConfirmingDelete(m.id)}>
-                          Delete
-                        </button>
-                      </>
-                    )}
+                    <button type="button" className="btn btn--small btn--ghost" onClick={() => setEditing(m)}>
+                      Edit
+                    </button>
+                    <button type="button" className="btn btn--small btn--ghost btn--danger-text" onClick={() => setConfirmingDelete(m)}>
+                      Delete
+                    </button>
                   </div>
                 </div>
               </article>
             )
           })}
         </div>
+      )}
+
+      {confirmingDelete && (
+        <DeleteMonitorDialog
+          monitor={confirmingDelete}
+          onClose={() => setConfirmingDelete(null)}
+          onDeleted={monitorDeleted}
+        />
       )}
 
       {data.monitors.length === 0 && !loading && !error && (

@@ -20,12 +20,25 @@ export function navigate(hash) {
 
 export function usePolling(callback, intervalMs = 10000, enabled = true) {
   const cbRef = useRef(callback)
-  cbRef.current = callback
+  const started = useRef(false)
+  useEffect(() => {
+    cbRef.current = callback
+  }, [callback])
+  // The interval ticks the latest callback. When the callback's identity
+  // changes (its request inputs changed), refetch right away so a filter or
+  // page change is never served with the previous request's data.
+  useEffect(() => {
+    if (!started.current) {
+      started.current = true
+      return undefined
+    }
+    cbRef.current()
+    return undefined
+  }, [callback])
   useEffect(() => {
     if (!enabled) return undefined
-    const tick = () => cbRef.current()
-    tick()
-    const timer = window.setInterval(tick, intervalMs)
+    cbRef.current()
+    const timer = window.setInterval(() => cbRef.current(), intervalMs)
     return () => window.clearInterval(timer)
   }, [intervalMs, enabled])
 }

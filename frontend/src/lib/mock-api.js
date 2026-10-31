@@ -130,7 +130,13 @@ window.fetch = async (input, init) => {
       if (path === '/api/notifications/test' && method === 'POST') return j({ succeeded: 2, failed: 0 })
       if (path === '/api/monitors' && method === 'POST') return j({ id: 6, ...bodyJson })
       if ((m = path.match(/^\/api\/monitors\/(\d+)$/)) && method === 'PATCH') return j(monitors.find((x) => x.id === +m[1]))
-      if (path.startsWith('/api/monitors/') && method === 'DELETE') return new Response(null, { status: 204 })
+      if ((m = path.match(/^\/api\/monitors\/(\d+)$/)) && method === 'DELETE') {
+        const removed = +m[1]
+        const without = monitors.filter((mon) => mon.id !== removed)
+        monitors.splice(0, monitors.length, ...without)
+        delete statusById[removed]
+        return new Response(null, { status: 204 })
+      }
       if (path === '/api/monitors' && method === 'GET') return j(monitors)
       if ((m = path.match(/^\/api\/monitors\/(\d+)$/)) && method === 'GET') return j(monitors.find((x) => x.id === +m[1]) ?? null)
       if ((m = path.match(/^\/api\/monitors\/(\d+)\/status$/))) return j(statusById[+m[1]] ?? null)

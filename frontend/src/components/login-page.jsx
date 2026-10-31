@@ -72,6 +72,9 @@ export function LoginPage() {
             {busy ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
+        <p className="login-foot">
+          Uptime checks, incident tracking and email alerts run on this instance's Spring Boot backend.
+        </p>
       </section>
     </div>
   )
