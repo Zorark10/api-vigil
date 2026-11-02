@@ -29,6 +29,8 @@ class ProductionKafkaConfigurationTest {
 				.contains("username=\"${KAFKA_USERNAME}\" password=\"${KAFKA_PASSWORD}\""));
 		assertEquals("SCRAM-SHA-256", production.getProperty("spring.kafka.consumer.properties.sasl.mechanism"));
 		assertEquals("SCRAM-SHA-256", production.getProperty("spring.kafka.admin.properties.sasl.mechanism"));
+		assertEquals("1", production.getProperty("spring.kafka.listener.concurrency"));
+		assertEquals("50", production.getProperty("spring.kafka.consumer.max-poll-records"));
 		assertFalse(production.stringPropertyNames().stream()
 				.anyMatch(key -> key.endsWith("ssl.endpoint.identification.algorithm")));
 	}

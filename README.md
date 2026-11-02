@@ -120,7 +120,7 @@ Set every required variable below in Render. Database, Kafka and Valkey connecti
 | `EMAILJS_PUBLIC_KEY` | Optional | EmailJS public key. |
 | `EMAILJS_PRIVATE_KEY` | Optional | EmailJS server-side private key. |
 
-The container uses a Java 21 runtime and bounds the JVM heap to 50% of detected memory, caps metaspace and code cache, and selects Serial GC to leave room for Spring, Kafka, Redis and native memory within Render's 512 MB / 0.1 CPU Free instance. Flyway remains enabled for the existing ownership migration, and Hibernate retains the current schema-update behavior so an empty database can be initialized with the current migration set.
+The Java 21 container is tuned for Render's 512 MB / 0.1 CPU Free instance: heap maximum 35% (~179 MiB), initial heap 8% (~41 MiB), metaspace cap 160 MiB, code cache 24 MiB, direct memory 32 MiB, and 256 KiB thread stacks. Serial GC and one active processor are selected. Tomcat is capped at 32 threads; Kafka listener concurrency is one per listener, with up to 50 records per poll. These JVM maxima total about 395 MiB before thread stacks and other native memory, leaving roughly 117 MiB for them. Flyway remains enabled for the existing ownership migration, and Hibernate retains the current schema-update behavior so an empty database can be initialized with the current migration set.
 
 ## API endpoints
 
