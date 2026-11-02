@@ -15,5 +15,5 @@ RUN useradd --system --uid 10001 --create-home appuser
 COPY --from=build --chown=appuser:appuser /workspace/target/api-monitor-0.0.1-SNAPSHOT.jar /app/app.jar
 USER appuser
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=40.0 -XX:InitialRAMPercentage=12.0 -XX:MaxMetaspaceSize=112m -XX:ReservedCodeCacheSize=32m -Xss512k -XX:+UseSerialGC -Djava.security.egd=file:/dev/urandom"
-EXPOSE 8080
-ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/app.jar --server.port=${PORT:-8080}"]
+EXPOSE 10000
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/app.jar"]

@@ -34,6 +34,14 @@ class ProductionKafkaConfigurationTest {
 	}
 
 	@Test
+	void productionBindsToRendersAssignedPortOnAllInterfaces() throws IOException {
+		Properties production = load("application-production.properties");
+
+		assertEquals("${PORT:8080}", production.getProperty("server.port"));
+		assertEquals("0.0.0.0", production.getProperty("server.address"));
+	}
+
+	@Test
 	void pemTrustConfigurationIsProductionOnly() throws IOException {
 		Properties common = load("application.properties");
 		Properties production = load("application-production.properties");
