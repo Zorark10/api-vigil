@@ -2,7 +2,9 @@ package com.project.api_monitor.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -17,6 +19,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.project.api_monitor.model.AppUser;
@@ -31,6 +34,7 @@ import com.project.api_monitor.support.TestAuth;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@TestPropertySource(properties = "CORS_ALLOWED_ORIGINS=https://apivigil.vercel.app")
 class RegistrationIntegrationTest {
 
 	private static final Pattern TOKEN_PATTERN = Pattern.compile("\"token\":\"([^\"]+)\"");
@@ -154,6 +158,22 @@ class RegistrationIntegrationTest {
 		mockMvc.perform(get("/api/auth/setup-status"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.administratorRequired").value(false));
+	}
+
+	@Test
+	void registrationCorsPreflightAllowsVercelOriginWithoutAuthentication() throws Exception {
+		mockMvc.perform(options("/api/auth/register")
+				.header(HttpHeaders.ORIGIN, "https://apivigil.vercel.app")
+				.header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST")
+				.header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "Content-Type,Authorization"))
+				.andExpect(status().isOk())
+				.andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "https://apivigil.vercel.app"))
+				.andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS,
+						org.hamcrest.Matchers.containsString("POST")))
+				.andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS,
+						org.hamcrest.Matchers.allOf(
+								org.hamcrest.Matchers.containsStringIgnoringCase("Content-Type"),
+								org.hamcrest.Matchers.containsStringIgnoringCase("Authorization"))));
 	}
 
 	@Test

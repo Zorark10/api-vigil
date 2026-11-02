@@ -70,8 +70,8 @@ public class SecurityConfig {
 			@Value("${app.cors.allowed-origins:http://localhost:5173}") String allowedOrigins) {
 		CorsConfiguration config = new CorsConfiguration();
 		config.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
-		config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE"));
-		config.setAllowedHeaders(Arrays.asList("*"));
+		config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+		config.setAllowedHeaders(Arrays.asList("Content-Type", "Authorization"));
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/api/**", config);
 		return source;

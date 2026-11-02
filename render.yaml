@@ -44,7 +44,7 @@ services:
       - key: ADMIN_PASSWORD
         sync: false
       - key: CORS_ALLOWED_ORIGINS
-        sync: false
+        value: https://apivigil.vercel.app
       - key: EMAILJS_SERVICE_ID
         sync: false
       - key: EMAILJS_TEMPLATE_ID

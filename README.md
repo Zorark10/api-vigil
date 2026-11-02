@@ -82,7 +82,7 @@ The backend is configured for Render's Docker runtime with Java 21. `render.yaml
 
 1. Create Aiven PostgreSQL, Kafka, and Valkey services, and allow network access from Render (or use the Aiven service's public endpoints). Copy each service's host, port, database/user, and credentials from its Aiven connection details.
 2. In Render, create a Blueprint from this repository and select the `apivigil-api` web service. Enter each `sync: false` value in the service's Environment settings. Keep passwords and keys in Render's secret environment fields; do not add them to Git.
-3. Set `CORS_ALLOWED_ORIGINS` to the exact future Cloudflare Pages origin, for example `https://your-project.pages.dev` (no trailing slash). Add any production custom domain as a comma-separated origin when known.
+3. The Render Blueprint sets `CORS_ALLOWED_ORIGINS=https://apivigil.vercel.app`. Keep it as an exact origin with no trailing slash; if the frontend moves to a custom domain, update this variable to that origin (or use a comma-separated list of exact origins).
 4. Generate a long random `JWT_SECRET` (at least 32 characters). Set a strong `ADMIN_PASSWORD` if you want the initial admin provisioned at startup; otherwise, the first registered account becomes the administrator.
 5. Set the four EmailJS values if notifications should send email. If they are empty, monitoring and incident processing continue and email sends are logged as unconfigured.
 6. Deploy from Render after all required service credentials are set. Keep the existing `compose.yaml` for local Postgres, Redis and Kafka development.
@@ -114,7 +114,7 @@ Set every required variable below in Render. Database, Kafka and Valkey connecti
 | `JWT_EXPIRATION` | No | JWT lifetime as ISO-8601 duration; default `PT1H`. |
 | `ADMIN_USERNAME` | No | Initial administrator username; default `admin`. |
 | `ADMIN_PASSWORD` | Recommended | Initial admin password. Leave empty to make the first registered account ADMIN. |
-| `CORS_ALLOWED_ORIGINS` | Yes | Comma-separated exact browser origins, including the future Cloudflare Pages URL. |
+| `CORS_ALLOWED_ORIGINS` | Yes | Comma-separated exact browser origins; Render sets `https://apivigil.vercel.app`. |
 | `EMAILJS_SERVICE_ID` | Optional | EmailJS sending service identifier. |
 | `EMAILJS_TEMPLATE_ID` | Optional | EmailJS notification template identifier. |
 | `EMAILJS_PUBLIC_KEY` | Optional | EmailJS public key. |
