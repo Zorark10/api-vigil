@@ -2,19 +2,30 @@ import { useEffect, useRef } from 'react'
 
 export function Dialog({ title, onClose, children, busy = false }) {
   const ref = useRef(null)
+  const onCloseRef = useRef(onClose)
+  const busyRef = useRef(busy)
+
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
+
+  useEffect(() => {
+    busyRef.current = busy
+  }, [busy])
+
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === 'Escape' && !busy) onClose()
+      if (e.key === 'Escape' && !busyRef.current) onCloseRef.current()
     }
     document.body.classList.add('dialog-open')
     window.addEventListener('keydown', onKey)
-    const first = ref.current?.querySelector('input, select, button')
+    const first = ref.current?.querySelector('input:not([type="hidden"]), select, textarea, button:not([disabled])')
     first?.focus()
     return () => {
       document.body.classList.remove('dialog-open')
       window.removeEventListener('keydown', onKey)
     }
-  }, [onClose, busy])
+  }, [])
 
   return (
     <div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && !busy && onClose()}>
