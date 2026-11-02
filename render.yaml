@@ -25,6 +25,8 @@ services:
         sync: false
       - key: KAFKA_PASSWORD
         sync: false
+      - key: KAFKA_CA_CERT
+        sync: false
       - key: VALKEY_HOST
         sync: false
       - key: VALKEY_PORT

@@ -87,7 +87,7 @@ The backend is configured for Render's Docker runtime with Java 21. `render.yaml
 5. Set the four EmailJS values if notifications should send email. If they are empty, monitoring and incident processing continue and email sends are logged as unconfigured.
 6. Deploy from Render after all required service credentials are set. Keep the existing `compose.yaml` for local Postgres, Redis and Kafka development.
 
-The `production` Spring profile requires TLS for PostgreSQL (`sslmode=require`), Valkey (`spring.data.redis.ssl.enabled=true`) and Kafka (`SASL_SSL` with `SCRAM-SHA-512`). For Aiven Kafka, use its SCRAM username/password and the TLS bootstrap endpoint. Do not paste an `ssl://` or `kafka://` URL into `KAFKA_BOOTSTRAP_SERVERS`; use `host:port`.
+The `production` Spring profile requires TLS for PostgreSQL (`sslmode=require`), Valkey (`spring.data.redis.ssl.enabled=true`) and Kafka (`SASL_SSL` with `SCRAM-SHA-256`). For Aiven Kafka, use its SCRAM username/password, TLS bootstrap endpoint, and CA certificate PEM. The Kafka PEM truststore is applied to producer, consumer and admin clients. Certificate chain and hostname verification remain enabled. Do not paste an `ssl://` or `kafka://` URL into `KAFKA_BOOTSTRAP_SERVERS`; use `host:port`.
 
 ### Render environment variables
 
@@ -105,6 +105,7 @@ Set every required variable below in Render. Database, Kafka and Valkey connecti
 | `KAFKA_BOOTSTRAP_SERVERS` | Yes | Aiven Kafka TLS bootstrap endpoint as `host:port`. |
 | `KAFKA_USERNAME` | Yes | Kafka SASL/SCRAM username. |
 | `KAFKA_PASSWORD` | Yes | Kafka SASL/SCRAM password. |
+| `KAFKA_CA_CERT` | Yes | Complete Aiven Kafka CA certificate in PEM format (include the `BEGIN CERTIFICATE` / `END CERTIFICATE` lines). |
 | `VALKEY_HOST` | Yes | Aiven Valkey hostname. |
 | `VALKEY_PORT` | Yes | Aiven Valkey TLS port. |
 | `VALKEY_USERNAME` | Yes | Valkey ACL username (usually `default`). |
