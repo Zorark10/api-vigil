@@ -68,10 +68,10 @@ export function RegisterPage() {
 
   return (
     <div className="login-wrap">
-      <section className="login-card" aria-label="Create an api-monitor account">
+      <section className="login-card" aria-label="Create an ApiVigil account">
         <a className="login-brand" href="#/" onClick={(e) => e.preventDefault()}>
           <Mark />
-          <span>api-monitor</span>
+          <span><b>Api</b>Vigil</span>
         </a>
         <h1 className="login-title">Create account</h1>
         <p className="login-finding">

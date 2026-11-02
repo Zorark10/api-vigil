@@ -93,8 +93,9 @@ function page(list) {
 const originalFetch = window.fetch
 window.fetch = async (input, init) => {
   const url = typeof input === 'string' ? input : input.url
-  const path = url.split('?')[0]
-  const query = new URLSearchParams(url.split('?')[1] ?? '')
+  const parsedUrl = new URL(url, window.location.origin)
+  const path = parsedUrl.pathname
+  const query = parsedUrl.searchParams
   const j = (body) =>
     new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } })
   const method = (init?.method ?? 'GET').toUpperCase()

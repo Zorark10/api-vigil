@@ -1,5 +1,19 @@
 import { getToken, setToken } from './auth.js'
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').trim().replace(/\/+$/, '')
+
+function apiUrl(path) {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  if (!API_BASE_URL) return normalizedPath
+
+  // Accept either a backend origin or an origin that already ends in /api.
+  const baseUrl = API_BASE_URL.replace(/\/api$/i, '')
+  const apiPath = /^\/api(?:\/|$)/i.test(normalizedPath)
+    ? normalizedPath
+    : `/api${normalizedPath}`
+  return `${baseUrl}${apiPath}`
+}
+
 class ApiError extends Error {
   constructor(message, status) {
     super(message)
@@ -12,7 +26,7 @@ async function request(path, options = {}) {
   const token = getToken()
   if (token) headers.Authorization = `Bearer ${token}`
 
-  const res = await fetch(path, { ...options, headers })
+  const res = await fetch(apiUrl(path), { ...options, headers })
   if (res.status === 401 && !path.startsWith('/api/auth/')) {
     // Session is no longer valid (expired or revoked token): drop it and let
     // the auth gate send the user back to the sign-in screen.

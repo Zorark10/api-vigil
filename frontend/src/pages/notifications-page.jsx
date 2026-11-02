@@ -171,7 +171,7 @@ export function NotificationsPage() {
             </div>
             <label className="toggle-row">
               <input type="checkbox" checked={settings.emailEnabled} onChange={toggleMaster} />
-              <span>Sending incident emails for this api-monitor instance</span>
+              <span>Sending incident emails for this ApiVigil instance</span>
             </label>
             <p className="page-note">
               With this off, incidents are still recorded in the dashboard but no email is sent.
