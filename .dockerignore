@@ -1,0 +1,16 @@
+.git
+.gitignore
+.env
+.env.*
+**/application-local.properties
+target
+**/target
+frontend
+.agent
+.agents
+.gemini
+.impeccable
+.opencode
+.taste-skill
+skills-lock.json
+*.log

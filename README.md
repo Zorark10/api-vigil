@@ -76,6 +76,51 @@ Behaviour:
 cd frontend && npm install && npm run dev   # dashboard on port 5173 (proxies /api to 8080)
 ```
 
+## Render deployment (Free web service + Aiven)
+
+The backend is configured for Render's Docker runtime with Java 21. `render.yaml` defines the Free web service, uses Render's injected `PORT`, and checks `GET /api/auth/setup-status`. That public route returns the registration bootstrap status and is permitted by the existing JWT security configuration. Free services may sleep while idle, so the first request after inactivity can take time.
+
+1. Create Aiven PostgreSQL, Kafka, and Valkey services, and allow network access from Render (or use the Aiven service's public endpoints). Copy each service's host, port, database/user, and credentials from its Aiven connection details.
+2. In Render, create a Blueprint from this repository and select the `apivigil-api` web service. Enter each `sync: false` value in the service's Environment settings. Keep passwords and keys in Render's secret environment fields; do not add them to Git.
+3. Set `CORS_ALLOWED_ORIGINS` to the exact future Cloudflare Pages origin, for example `https://your-project.pages.dev` (no trailing slash). Add any production custom domain as a comma-separated origin when known.
+4. Generate a long random `JWT_SECRET` (at least 32 characters). Set a strong `ADMIN_PASSWORD` if you want the initial admin provisioned at startup; otherwise, the first registered account becomes the administrator.
+5. Set the four EmailJS values if notifications should send email. If they are empty, monitoring and incident processing continue and email sends are logged as unconfigured.
+6. Deploy from Render after all required service credentials are set. Keep the existing `compose.yaml` for local Postgres, Redis and Kafka development.
+
+The `production` Spring profile requires TLS for PostgreSQL (`sslmode=require`), Valkey (`spring.data.redis.ssl.enabled=true`) and Kafka (`SASL_SSL` with `SCRAM-SHA-512`). For Aiven Kafka, use its SCRAM username/password and the TLS bootstrap endpoint. Do not paste an `ssl://` or `kafka://` URL into `KAFKA_BOOTSTRAP_SERVERS`; use `host:port`.
+
+### Render environment variables
+
+Set every required variable below in Render. Database, Kafka and Valkey connection values are available in each Aiven service's connection information. EmailJS values are optional if alert email is not configured.
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `SPRING_PROFILES_ACTIVE` | Set by `render.yaml` | Selects production cloud TLS/auth configuration. |
+| `PORT` | Render supplied | HTTP listen port; passed to Spring Boot. Do not set manually. |
+| `DB_HOST` | Yes | Aiven PostgreSQL hostname. |
+| `DB_PORT` | Yes | Aiven PostgreSQL TLS port. |
+| `DB_NAME` | Yes | PostgreSQL database name. |
+| `DB_USERNAME` | Yes | PostgreSQL user. |
+| `DB_PASSWORD` | Yes | PostgreSQL password. |
+| `KAFKA_BOOTSTRAP_SERVERS` | Yes | Aiven Kafka TLS bootstrap endpoint as `host:port`. |
+| `KAFKA_USERNAME` | Yes | Kafka SASL/SCRAM username. |
+| `KAFKA_PASSWORD` | Yes | Kafka SASL/SCRAM password. |
+| `VALKEY_HOST` | Yes | Aiven Valkey hostname. |
+| `VALKEY_PORT` | Yes | Aiven Valkey TLS port. |
+| `VALKEY_USERNAME` | Yes | Valkey ACL username (usually `default`). |
+| `VALKEY_PASSWORD` | Yes | Valkey password. |
+| `JWT_SECRET` | Yes | HS256 signing secret, at least 32 characters. |
+| `JWT_EXPIRATION` | No | JWT lifetime as ISO-8601 duration; default `PT1H`. |
+| `ADMIN_USERNAME` | No | Initial administrator username; default `admin`. |
+| `ADMIN_PASSWORD` | Recommended | Initial admin password. Leave empty to make the first registered account ADMIN. |
+| `CORS_ALLOWED_ORIGINS` | Yes | Comma-separated exact browser origins, including the future Cloudflare Pages URL. |
+| `EMAILJS_SERVICE_ID` | Optional | EmailJS sending service identifier. |
+| `EMAILJS_TEMPLATE_ID` | Optional | EmailJS notification template identifier. |
+| `EMAILJS_PUBLIC_KEY` | Optional | EmailJS public key. |
+| `EMAILJS_PRIVATE_KEY` | Optional | EmailJS server-side private key. |
+
+The container uses a Java 21 runtime and bounds the JVM heap to 50% of detected memory, caps metaspace and code cache, and selects Serial GC to leave room for Spring, Kafka, Redis and native memory within Render's 512 MB / 0.1 CPU Free instance. Flyway remains enabled for the existing ownership migration, and Hibernate retains the current schema-update behavior so an empty database can be initialized with the current migration set.
+
 ## API endpoints
 
 ### Auth

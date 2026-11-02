@@ -77,7 +77,7 @@ class NotificationIntegrationTest {
 				.andExpect(jsonPath("$.email").value("ops@example.com"))
 				.andExpect(jsonPath("$.enabled").value(true));
 
-		assertThat(recipientRepo.findAllByOrderByIdAsc()).hasSize(1);
+		assertThat(recipientRepo.findAll()).hasSize(1);
 	}
 
 	@Test
@@ -129,7 +129,7 @@ class NotificationIntegrationTest {
 	void toggleRecipientDisabled() throws Exception {
 		notificationAdd("a@x.io");
 
-		Long id = recipientRepo.findAllByOrderByIdAsc().get(0).getId().longValue();
+		Long id = recipientRepo.findAll().get(0).getId().longValue();
 
 		mockMvc.perform(patch("/api/notifications/recipients/" + id)
 				.header(HttpHeaders.AUTHORIZATION, bearer())
@@ -154,7 +154,7 @@ class NotificationIntegrationTest {
 	@Test
 	void deleteRecipient() throws Exception {
 		notificationAdd("a@x.io");
-		Long id = recipientRepo.findAllByOrderByIdAsc().get(0).getId().longValue();
+		Long id = recipientRepo.findAll().get(0).getId().longValue();
 
 		mockMvc.perform(delete("/api/notifications/recipients/" + id)
 				.header(HttpHeaders.AUTHORIZATION, bearer()))

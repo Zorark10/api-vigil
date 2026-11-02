@@ -17,5 +17,10 @@ public interface IncidentRepository extends JpaRepository<Incident, Integer>{
 
 	public Page<Incident> findByStatusOrderByStartedAtDesc(IncidentStatus status, Pageable pageable);
 
+	// Workspace-scoped incident feeds (through the monitor's owner).
+	public Page<Incident> findByMonitorOwnerIdOrderByStartedAtDesc(Integer ownerId, Pageable pageable);
+
+	public Page<Incident> findByMonitorOwnerIdAndStatusOrderByStartedAtDesc(Integer ownerId, IncidentStatus status, Pageable pageable);
+
 	public void deleteByMonitor(Monitor monitor);
 }

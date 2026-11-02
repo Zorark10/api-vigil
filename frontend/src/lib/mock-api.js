@@ -71,9 +71,12 @@ const incidents = [
 ]
 
 // Preview session: a signed-in session so authed screens can be inspected.
-sessionStorage.setItem('am.token', 'preview-token')
+// Screens/tooling that must inspect the signed-out state set the
+// 'am.preview.signOut' flag; the seeded token is then withheld.
+const signedOut = sessionStorage.getItem('am.preview.signOut') === '1'
+if (!signedOut) sessionStorage.setItem('am.token', 'preview-token')
 
-const user = { username: 'admin', role: 'ADMIN', createdAt: iso(60 * 24 * 30) }
+let user = { username: 'admin', role: 'ADMIN', createdAt: iso(60 * 24 * 30) }
 
 let notificationSettings = { emailEnabled: true }
 
@@ -100,6 +103,15 @@ window.fetch = async (input, init) => {
     if (path.startsWith('/api')) {
       let m
       if (path === '/api/auth/login' && method === 'POST') return j({ token: 'preview-token', tokenType: 'Bearer' })
+      if (path === '/api/auth/register' && method === 'POST') {
+        user = {
+          username: String(bodyJson?.username ?? 'user'),
+          role: 'USER',
+          createdAt: iso(0),
+        }
+        return j({ token: 'preview-token', tokenType: 'Bearer' })
+      }
+      if (path === '/api/auth/setup-status') return j({ administratorRequired: false })
       if (path === '/api/auth/me') return j(user)
       if (path === '/api/notifications/settings' && method === 'GET') return j(notificationSettings)
       if (path === '/api/notifications/settings' && method === 'PUT') {

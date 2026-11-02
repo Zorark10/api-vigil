@@ -7,6 +7,7 @@ export function LoginPage() {
   const { login } = useAuth()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
 
@@ -26,14 +27,14 @@ export function LoginPage() {
 
   return (
     <div className="login-wrap">
-      <section className="login-card" aria-label="Sign in to api-monitor">
+      <section className="login-card" aria-label="Sign in to ApiVigil">
         <a className="login-brand" href="#/" onClick={(e) => e.preventDefault()}>
           <Mark />
-          <span>api-monitor</span>
+          <span><b>Api</b>Vigil</span>
         </a>
         <h1 className="login-title">Sign in</h1>
         <p className="login-finding">
-          Use the administrator account configured for this api-monitor instance.
+          Sign in with your ApiVigil account. New here? Create one below.
         </p>
         <form className="login-form" onSubmit={onSubmit}>
           <div className="field">
@@ -48,32 +49,55 @@ export function LoginPage() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               disabled={busy}
+              data-testid="login-username"
             />
           </div>
           <div className="field">
             <label className="field-label" htmlFor="login-password">Password</label>
-            <input
-              id="login-password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={busy}
-            />
+            <div className="field-secret">
+              <input
+                id="login-password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={busy}
+                data-testid="login-password"
+              />
+              <button
+                type="button"
+                className="btn btn--ghost btn--small field-secret-toggle"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-pressed={showPassword}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                disabled={busy}
+                data-testid="toggle-login-password"
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </div>
           {error && (
-            <p className="login-error" role="alert">
+            <p className="login-error" role="alert" data-testid="login-error">
               {error}
             </p>
           )}
-          <button className="btn btn--primary btn--block" type="submit" disabled={busy}>
+          <button
+            className="btn btn--primary btn--block"
+            type="submit"
+            disabled={busy}
+            data-testid="login-submit"
+          >
             {busy ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
         <p className="login-foot">
-          Uptime checks, incident tracking and email alerts run on this instance's Spring Boot backend.
+          Uptime checks, incident tracking and email alerts are private to your account.{' '}
+          <a className="auth-link" href="#/register" data-testid="create-account-link">
+            Create account
+          </a>
         </p>
       </section>
     </div>

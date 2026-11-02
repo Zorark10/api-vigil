@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,7 +16,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "app_user")
+@Table(name = "app_user", uniqueConstraints = @UniqueConstraint(
+		name = "uk_app_user_email", columnNames = "email"))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -29,6 +31,9 @@ public class AppUser {
 
 	@Column(nullable = false, unique = true)
 	private String username;
+
+	@Column(nullable = false)
+	private String email;
 
 	// Only ever stored as a BCrypt hash; plaintext is never persisted.
 	@Column(nullable = false)

@@ -68,6 +68,10 @@ export function MonitorsPage({ openIncidents }) {
   }
 
   const down = data.monitors.filter((m) => data.statusById[m.id]?.status === 'DOWN')
+  const operational = data.monitors.filter((m) => data.statusById[m.id]?.status === 'UP').length
+  const measured = data.monitors.map((m) => data.statusById[m.id]?.responseTime).filter((v) => Number.isFinite(v))
+  const avgResponse = measured.length ? Math.round(measured.reduce((sum, v) => sum + v, 0) / measured.length) : null
+  const uptime = data.monitors.length ? Math.round((operational / data.monitors.length) * 1000) / 10 : null
   const finding =
     data.monitors.length === 0
       ? null
@@ -79,8 +83,9 @@ export function MonitorsPage({ openIncidents }) {
     <section className="page" aria-label="Monitors">
       <header className="title-row">
         <div>
-          <h1>Monitors</h1>
-          {finding && <p className="finding">{finding}</p>}
+          <div className="eyebrow"><span className="eyebrow-mark" /> SYSTEM OVERVIEW</div>
+          <h1>Monitor fleet</h1>
+          <p className="finding">A live view of endpoint health across your workspace.</p>
         </div>
         <div className="title-actions">
           {freshness && <span className="freshness">Updated {fmtRelative(freshness, now)}</span>}
@@ -92,6 +97,18 @@ export function MonitorsPage({ openIncidents }) {
           </button>
         </div>
       </header>
+
+      <section className="fleet-summary" aria-label="Fleet overview">
+        <div className="fleet-summary-state"><span className={`fleet-state-mark${down.length ? ' is-down' : ' is-up'}`} aria-hidden="true"/><div><span className="overview-kicker">CURRENT FLEET STATE</span><strong>{finding || 'No checks reported yet'}</strong></div><span className="fleet-uptime"><b>{uptime == null ? '—' : `${uptime}%`}</b><small>uptime</small></span></div>
+        <dl className="fleet-summary-stats">
+          <div><dt>Monitors</dt><dd>{loading ? '—' : data.monitors.length}</dd></div>
+          <div><dt>Operational</dt><dd className="value-good">{loading ? '—' : operational}</dd></div>
+          <div><dt>Failing</dt><dd className={down.length ? 'value-bad' : ''}>{loading ? '—' : down.length}</dd></div>
+          <div><dt>Mean response</dt><dd>{loading || avgResponse == null ? '—' : <>{avgResponse}<small> ms</small></>}</dd></div>
+        </dl>
+      </section>
+
+      {openIncidents.length > 0 && <a className="incident-banner" href="#/incidents"><span className="incident-banner-rule"/><span className="incident-banner-copy"><b>{openIncidents.length} active incident{openIncidents.length === 1 ? '' : 's'}</b><small>{openIncidents.slice(0, 2).map((incident) => data.monitors.find((m) => m.id === incident.monitorId)?.name || `Monitor #${incident.monitorId}`).join(' · ')}</small></span><span className="incident-banner-link">Review incidents <b>↗</b></span></a>}
 
       {loading ? (
         <div className="panel">
@@ -107,6 +124,8 @@ export function MonitorsPage({ openIncidents }) {
       ) : error ? (
         <ErrorBlock error={error} onRetry={load} context="Couldn't load monitors" />
       ) : data.monitors.length === 0 ? (
+        <section className="monitor-section">
+        <header className="monitor-section-head"><div><div className="eyebrow">ENDPOINT INVENTORY</div><h2>All monitors <span>00</span></h2></div></header>
         <EmptyState
           action={
             <button type="button" className="btn btn--secondary" onClick={() => setEditing('new')}>
@@ -116,7 +135,10 @@ export function MonitorsPage({ openIncidents }) {
         >
           No monitors yet. Add an HTTP endpoint and the scheduler starts checking it on its interval.
         </EmptyState>
+        </section>
       ) : (
+        <section className="monitor-section">
+        <header className="monitor-section-head"><div><div className="eyebrow">ENDPOINT INVENTORY</div><h2>All monitors <span>{data.monitors.length.toString().padStart(2, '0')}</span></h2></div><span className="inventory-legend"><i className="legend-up" /> Healthy <i className="legend-down" /> Failing <i className="legend-idle" /> No data</span></header>
         <div className="monitor-list">
           {data.monitors.map((m) => {
             const status = data.statusById[m.id]
@@ -173,7 +195,7 @@ export function MonitorsPage({ openIncidents }) {
               </article>
             )
           })}
-        </div>
+        </div></section>
       )}
 
       {confirmingDelete && (

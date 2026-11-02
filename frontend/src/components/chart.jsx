@@ -60,6 +60,7 @@ export function ResponseTimeChart({ points, height = 160 }) {
       ))}
       {series.length > 1 && <path d={area} className="chart-area" />}
       <path d={line} className="chart-line" />
+      {series.map((point, i) => <circle key={`point-${i}`} cx={x(i)} cy={y(point.v)} r="3" className={`chart-point chart-point--${point.raw.status === 'DOWN' ? 'down' : 'up'}`}><title>{fmtShortTime(point.raw.checkedAt)} · {point.v} ms · {point.raw.status}</title></circle>)}
       {xLabels.map(({ s, i }) => (
         <text key={`x-${i}`} x={x(i)} y={height - 6} className="chart-tick" textAnchor={i === 0 ? 'start' : i === series.length - 1 ? 'end' : 'middle'}>
           {fmtShortTime(s.raw.checkedAt)}

@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import com.project.api_monitor.model.AppUser;
 import com.project.api_monitor.model.Incident;
 import com.project.api_monitor.model.IncidentEvent;
 import com.project.api_monitor.model.IncidentResponse;
@@ -67,11 +68,16 @@ public class IncidentService {
 		return incidentRepo.findByMonitorOrderByStartedAtDesc(monitor, pageable).map(IncidentResponse::from);
 	}
 
-	public Page<IncidentResponse> getIncidents(Optional<IncidentStatus> status, Pageable pageable) {
+	/**
+	 * Workspace feed: only incidents of monitors owned by the authenticated
+	 * account, never the whole table.
+	 */
+	public Page<IncidentResponse> getIncidents(Optional<IncidentStatus> status, Pageable pageable, AppUser owner) {
 		if (status.isPresent()) {
-			return incidentRepo.findByStatusOrderByStartedAtDesc(status.get(), pageable).map(IncidentResponse::from);
+			return incidentRepo.findByMonitorOwnerIdAndStatusOrderByStartedAtDesc(
+					owner.getId(), status.get(), pageable).map(IncidentResponse::from);
 		}
-		return incidentRepo.findAll(pageable).map(IncidentResponse::from);
+		return incidentRepo.findByMonitorOwnerIdOrderByStartedAtDesc(owner.getId(), pageable).map(IncidentResponse::from);
 	}
 
 }

@@ -7,14 +7,18 @@ import java.util.Locale;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.project.api_monitor.exception.DuplicateRecipientException;
 import com.project.api_monitor.exception.RecipientNotFoundException;
+import com.project.api_monitor.model.AppUser;
 import com.project.api_monitor.model.IncidentEvent;
 import com.project.api_monitor.model.IncidentStatus;
+import com.project.api_monitor.model.Monitor;
 import com.project.api_monitor.model.NotificationRecipient;
 import com.project.api_monitor.model.NotificationSettings;
 import com.project.api_monitor.model.TestEmailResult;
+import com.project.api_monitor.repository.MonitorRepo;
 import com.project.api_monitor.repository.NotificationRecipientRepo;
 import com.project.api_monitor.repository.NotificationSettingsRepo;
 
@@ -22,11 +26,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Email notification management and delivery: recipients and the global
+ * Email notification management and delivery: recipients and the per-account
  * on/off switch live in PostgreSQL; incident DOWN/recovery emails are driven
  * by the incident-events Kafka stream, which fires exactly once per incident
  * transition, so no address ever receives repeated mails for consecutive
- * failed checks of the same outage.
+ * failed checks of the same outage. Everything is scoped to the owning
+ * account; the incident consumer resolves the owner of the incident's monitor
+ * from the database, so background delivery never depends on HTTP context.
  */
 @Service
 @RequiredArgsConstructor
@@ -39,35 +45,36 @@ public class NotificationService {
 	private final NotificationRecipientRepo recipientRepo;
 	private final NotificationSettingsRepo settingsRepo;
 	private final EmailDeliveryService emailDeliveryService;
+	private final MonitorRepo monitorRepo;
 
 	// ---- settings ----
 
-	public NotificationSettings getSettings() {
-		return settingsRepo.findAll().stream()
-				.min(java.util.Comparator.comparing(NotificationSettings::getId))
+	public NotificationSettings getSettings(AppUser owner) {
+		return settingsRepo.findByOwnerId(owner.getId())
 				.orElseGet(() -> settingsRepo.save(
-						NotificationSettings.builder().emailEnabled(true).build()));
+						NotificationSettings.builder().owner(owner).emailEnabled(true).build()));
 	}
 
-	public void setEmailEnabled(boolean enabled) {
-		NotificationSettings settings = getSettings();
+	public void setEmailEnabled(AppUser owner, boolean enabled) {
+		NotificationSettings settings = getSettings(owner);
 		settings.setEmailEnabled(enabled);
 		settingsRepo.save(settings);
 	}
 
 	// ---- recipients ----
 
-	public List<NotificationRecipient> listRecipients() {
-		return recipientRepo.findAllByOrderByIdAsc();
+	public List<NotificationRecipient> listRecipients(AppUser owner) {
+		return recipientRepo.findAllByOwnerIdOrderByIdAsc(owner.getId());
 	}
 
-	public NotificationRecipient addRecipient(String email) {
+	public NotificationRecipient addRecipient(String email, AppUser owner) {
 		String normalized = email.trim().toLowerCase(Locale.ROOT);
-		if (recipientRepo.existsByEmail(normalized)) {
+		if (recipientRepo.existsByOwnerIdAndEmail(owner.getId(), normalized)) {
 			throw new DuplicateRecipientException();
 		}
 		try {
 			return recipientRepo.save(NotificationRecipient.builder()
+					.owner(owner)
 					.email(normalized)
 					.enabled(true)
 					.createdAt(LocalDateTime.now())
@@ -78,15 +85,15 @@ public class NotificationService {
 		}
 	}
 
-	public void removeRecipient(Integer id) {
-		if (!recipientRepo.existsById(id)) {
+	public void removeRecipient(Integer id, AppUser owner) {
+		if (!recipientRepo.existsByIdAndOwnerId(id, owner.getId())) {
 			throw new RecipientNotFoundException(id);
 		}
 		recipientRepo.deleteById(id);
 	}
 
-	public NotificationRecipient setRecipientEnabled(Integer id, boolean enabled) {
-		NotificationRecipient recipient = recipientRepo.findById(id)
+	public NotificationRecipient setRecipientEnabled(Integer id, boolean enabled, AppUser owner) {
+		NotificationRecipient recipient = recipientRepo.findByIdAndOwnerId(id, owner.getId())
 				.orElseThrow(() -> new RecipientNotFoundException(id));
 		recipient.setEnabled(enabled);
 		return recipientRepo.save(recipient);
@@ -94,22 +101,35 @@ public class NotificationService {
 
 	// ---- email delivery ----
 
-	public TestEmailResult sendTestEmail() {
+	public TestEmailResult sendTestEmail(AppUser owner) {
 		String subject = "[api-monitor] Test notification";
 		String text = "This is a test email from your api-monitor instance.\n"
 				+ "If you received it, incident notifications for it will arrive at this address.";
-		return sendToEnabledRecipients(subject, text);
+		return sendToEnabledRecipients(owner, subject, text);
 	}
 
 	/**
 	 * Called by the incident-events Kafka consumer exactly once per incident
-	 * transition (DOWN / RECOVERED). Never throws: notification problems are
-	 * logged and leave monitoring, Kafka processing and incidents untouched.
+	 * transition (DOWN / RECOVERED). The recipient list and the on/off switch
+	 * belong to the account owning the incident's monitor, resolved from the
+	 * database — no HTTP authentication context exists in the consumer. Never
+	 * throws: notification problems are logged and leave monitoring, Kafka
+	 * processing and incidents untouched.
 	 */
+	@Transactional(readOnly = true)
 	public void handleIncidentEvent(IncidentEvent event) {
 		try {
-			if (!getSettings().isEmailEnabled()) {
-				log.debug("Email notifications disabled; skipping incident event {}", event.getIncidentId());
+			AppUser owner = monitorRepo.findById(event.getMonitorId())
+					.map(Monitor::getOwner)
+					.orElse(null);
+			if (owner == null) {
+				// The monitor was deleted between producing and consuming the
+				// event; there is no workspace left to notify.
+				log.debug("No monitor {} for incident event {}; skipping notification", event.getMonitorId(), event.getIncidentId());
+				return;
+			}
+			if (!getSettings(owner).isEmailEnabled()) {
+				log.debug("Email notifications disabled for {}; skipping incident event {}", owner.getUsername(), event.getIncidentId());
 				return;
 			}
 			boolean down = event.getStatus() == IncidentStatus.OPEN;
@@ -118,16 +138,16 @@ public class NotificationService {
 					? "[api-monitor] DOWN: " + monitorName
 					: "[api-monitor] RECOVERED: " + monitorName;
 			String text = down ? buildDownText(event, monitorName) : buildRecoveredText(event, monitorName);
-			sendToEnabledRecipients(subject, text);
+			sendToEnabledRecipients(owner, subject, text);
 		} catch (Exception ex) {
 			log.error("Incident notification for incident {} failed", event != null ? event.getIncidentId() : null, ex);
 		}
 	}
 
-	private TestEmailResult sendToEnabledRecipients(String subject, String text) {
+	private TestEmailResult sendToEnabledRecipients(AppUser owner, String subject, String text) {
 		int succeeded = 0;
 		int failed = 0;
-		for (NotificationRecipient recipient : recipientRepo.findAllByOrderByIdAsc()) {
+		for (NotificationRecipient recipient : recipientRepo.findAllByOwnerIdOrderByIdAsc(owner.getId())) {
 			if (!recipient.isEnabled()) {
 				continue;
 			}

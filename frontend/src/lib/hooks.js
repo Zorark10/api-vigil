@@ -8,6 +8,8 @@ export function useHashRoute() {
     return () => window.removeEventListener('hashchange', onChange)
   }, [])
   const [page, parts] = hash.replace(/^#/, '').split('/').filter(Boolean)
+  if (page === 'login') return { name: 'login' }
+  if (page === 'register') return { name: 'register' }
   if (page === 'monitors' && parts) return { name: 'monitor-detail', id: Number(parts) }
   if (page === 'incidents') return { name: 'incidents' }
   if (page === 'notifications') return { name: 'notifications' }

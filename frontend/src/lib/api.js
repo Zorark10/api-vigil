@@ -13,7 +13,7 @@ async function request(path, options = {}) {
   if (token) headers.Authorization = `Bearer ${token}`
 
   const res = await fetch(path, { ...options, headers })
-  if (res.status === 401 && !path.startsWith('/api/auth/login')) {
+  if (res.status === 401 && !path.startsWith('/api/auth/')) {
     // Session is no longer valid (expired or revoked token): drop it and let
     // the auth gate send the user back to the sign-in screen.
     setToken(null)
@@ -39,6 +39,19 @@ export async function login(username, password) {
     body: JSON.stringify({ username, password }),
   })
 }
+
+// Registers a new account; the backend immediately authenticates it, so the
+// response carries a Bearer token the same way login does.
+export async function register(username, email, password) {
+  return request('/api/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ username, email, password }),
+  })
+}
+
+// Public: reports whether this instance still has no users (the next
+// registration will create the initial administrator).
+export const getSetupStatus = () => request('/api/auth/setup-status')
 
 export const getMe = () => request('/api/auth/me')
 

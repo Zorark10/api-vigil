@@ -38,9 +38,23 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>
 		</dependency>
-		<dependency>
+    	<dependency>
     		<groupId>org.springframework.boot</groupId>
     		<artifactId>spring-boot-starter-data-redis</artifactId>
+		</dependency>
+		<!-- Schema migrations: the ownership migration runs on the existing
+		     PostgreSQL database; keep ddl-auto=update only as a fallback.
+		     NOTE: the Spring Boot starter is what wires Flyway
+		     auto-configuration into the application lifecycle (the raw
+		     org.flywaydb jars alone do nothing on their own). -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-flyway</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-database-postgresql</artifactId>
+			<scope>runtime</scope>
 		</dependency>
 		<dependency>
     		<groupId>org.springframework.boot</groupId>
@@ -75,6 +89,11 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -132,6 +151,21 @@
 						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<!-- Keep tests isolated even when the host has production datasource
+					     environment variables set. JVM properties outrank the host env. -->
+					<systemPropertyVariables>
+						<spring.profiles.active>test</spring.profiles.active>
+						<spring.datasource.url>jdbc:h2:mem:apimonitor;DB_CLOSE_DELAY=-1;NON_KEYWORDS=INTERVAL</spring.datasource.url>
+						<spring.datasource.driver-class-name>org.h2.Driver</spring.datasource.driver-class-name>
+						<spring.datasource.username>sa</spring.datasource.username>
+						<spring.datasource.password></spring.datasource.password>
+					</systemPropertyVariables>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

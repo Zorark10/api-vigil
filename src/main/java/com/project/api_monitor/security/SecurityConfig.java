@@ -88,6 +88,8 @@ public class SecurityConfig {
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/auth/setup-status").permitAll()
 						.requestMatchers("/error").permitAll()
 						.anyRequest().authenticated())
 				.exceptionHandling(handling -> handling

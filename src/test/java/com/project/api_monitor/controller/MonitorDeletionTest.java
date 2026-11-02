@@ -21,12 +21,14 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.project.api_monitor.model.AppUser;
 import com.project.api_monitor.model.HttpMethod;
 import com.project.api_monitor.model.Incident;
 import com.project.api_monitor.model.IncidentStatus;
 import com.project.api_monitor.model.Monitor;
 import com.project.api_monitor.model.MonitorResult;
 import com.project.api_monitor.model.MonitorStatus;
+import com.project.api_monitor.repository.AppUserRepo;
 import com.project.api_monitor.repository.IncidentRepository;
 import com.project.api_monitor.repository.MonitorRepo;
 import com.project.api_monitor.repository.MonitorResultRepo;
@@ -57,6 +59,9 @@ class MonitorDeletionTest {
 	@Autowired
 	private IncidentRepository incidentRepo;
 
+	@Autowired
+	private AppUserRepo appUserRepo;
+
 	@MockitoBean
 	private IncidentEventProducer incidentEventProducer;
 
@@ -68,6 +73,8 @@ class MonitorDeletionTest {
 
 	private String token;
 
+	private AppUser admin;
+
 	private String bearer() {
 		return "Bearer " + token;
 	}
@@ -78,10 +85,12 @@ class MonitorDeletionTest {
 		monitorResultRepo.deleteAll();
 		monitorRepo.deleteAll();
 		token = TestAuth.login(mockMvc);
+		admin = appUserRepo.findByUsername("admin").orElseThrow();
 	}
 
 	private Monitor monitor(String name) {
 		return monitorRepo.save(Monitor.builder()
+				.owner(admin)
 				.name(name)
 				.url("https://" + name.toLowerCase().replace(' ', '-') + ".example.com/health")
 				.interval(60)

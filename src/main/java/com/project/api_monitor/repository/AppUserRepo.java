@@ -9,4 +9,8 @@ import com.project.api_monitor.model.AppUser;
 public interface AppUserRepo extends JpaRepository<AppUser, Integer> {
 
 	Optional<AppUser> findByUsername(String username);
+
+	boolean existsByUsername(String username);
+
+	boolean existsByEmail(String email);
 }

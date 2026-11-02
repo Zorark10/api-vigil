@@ -7,13 +7,15 @@ import { MonitorDetailPage } from './pages/monitor-detail-page.jsx'
 import { IncidentsPage } from './pages/incidents-page.jsx'
 import { NotificationsPage } from './pages/notifications-page.jsx'
 import { LoginPage } from './components/login-page.jsx'
+import { RegisterPage } from './components/register-page.jsx'
 import { Mark } from './components/mark.jsx'
+import { useNow } from './lib/hooks.js'
 
 function Wordmark() {
   return (
     <a className="wordmark" href="#/" onClick={() => (window.location.hash = '#/')}>
       <Mark />
-      <span>api-monitor</span>
+      <span><b>Api</b>Vigil</span>
     </a>
   )
 }
@@ -30,7 +32,9 @@ function AuthGate() {
     )
   }
 
-  if (!user) return <LoginPage />
+  if (!user) {
+    return route.name === 'register' ? <RegisterPage /> : <LoginPage />
+  }
 
   return <Dashboard route={route} user={user} />
 }
@@ -38,6 +42,7 @@ function AuthGate() {
 function Dashboard({ route, user }) {
   const { logout } = useAuth()
   const [openIncidents, setOpenIncidents] = useState([])
+  const now = useNow(1000)
 
   const loadOpen = useCallback(async () => {
     try {
@@ -56,6 +61,7 @@ function Dashboard({ route, user }) {
     <div className="shell">
       <aside className="sidebar" aria-label="Product navigation">
         <Wordmark />
+        <div className="rail-caption">WORKSPACE</div>
         <nav className="nav">
           <a
             className={`nav-item${route.name === 'monitors' || route.name === 'monitor-detail' ? ' nav-item--active' : ''}`}
@@ -80,7 +86,9 @@ function Dashboard({ route, user }) {
             Notifications
           </a>
         </nav>
+        <div className="rail-status"><span className="rail-status-dot" /> Monitoring pipeline <span>LIVE</span></div>
         <div className="sidebar-user">
+          <span className="user-avatar" aria-hidden="true">{(user.username || 'U').slice(0, 1).toUpperCase()}</span>
           <span className="sidebar-user-name mono" title={user.username}>{user.username}</span>
           <button
             type="button"
@@ -92,6 +100,7 @@ function Dashboard({ route, user }) {
         </div>
       </aside>
       <main className="sheet" id="content">
+        <div className="topline"><span>OBSERVABILITY <i>/</i> {route.name === 'monitor-detail' ? 'MONITOR DETAIL' : route.name.toUpperCase()}</span><span className="topline-clock">LOCAL TIME <b>{now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</b></span></div>
         {route.name === 'monitor-detail' ? (
           <MonitorDetailPage id={route.id} />
         ) : route.name === 'incidents' ? (

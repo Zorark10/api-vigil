@@ -21,6 +21,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import com.project.api_monitor.model.AppUser;
 import com.project.api_monitor.model.Incident;
 import com.project.api_monitor.model.IncidentEvent;
 import com.project.api_monitor.model.IncidentStatus;
@@ -28,6 +29,7 @@ import com.project.api_monitor.model.Monitor;
 import com.project.api_monitor.model.MonitorResult;
 import com.project.api_monitor.model.MonitorStatus;
 import com.project.api_monitor.model.NotificationRecipient;
+import com.project.api_monitor.repository.AppUserRepo;
 import com.project.api_monitor.repository.IncidentRepository;
 import com.project.api_monitor.repository.MonitorRepo;
 import com.project.api_monitor.repository.NotificationRecipientRepo;
@@ -53,6 +55,9 @@ class IncidentNotificationTest {
 	private NotificationSettingsRepo settingsRepo;
 
 	@Autowired
+	private AppUserRepo appUserRepo;
+
+	@Autowired
 	private IncidentService incidentService;
 
 	@Autowired
@@ -64,6 +69,8 @@ class IncidentNotificationTest {
 	@MockitoBean
 	private EmailJsClient emailJsClient;
 
+	private AppUser admin;
+
 	private Monitor monitor;
 
 	@BeforeEach
@@ -73,7 +80,10 @@ class IncidentNotificationTest {
 		recipientRepo.deleteAll();
 		settingsRepo.deleteAll();
 
+		admin = appUserRepo.findByUsername("admin").orElseThrow();
+
 		monitor = monitorRepo.save(Monitor.builder()
+				.owner(admin)
 				.name("Billing API")
 				.url("https://billing.example.com/health")
 				.interval(60)
@@ -96,6 +106,7 @@ class IncidentNotificationTest {
 
 	private NotificationRecipient recipient(String email, boolean enabled) {
 		return recipientRepo.save(NotificationRecipient.builder()
+				.owner(admin)
 				.email(email)
 				.enabled(enabled)
 				.createdAt(LocalDateTime.now())
@@ -218,7 +229,7 @@ class IncidentNotificationTest {
 	@Test
 	void disabledEmailNotificationsSuppressMail() {
 		recipient("alice@example.com", true);
-		settingsRepo.save(com.project.api_monitor.model.NotificationSettings.builder().emailEnabled(false).build());
+		settingsRepo.save(com.project.api_monitor.model.NotificationSettings.builder().owner(admin).emailEnabled(false).build());
 
 		notificationService.handleIncidentEvent(IncidentEvent.builder()
 				.monitorId(monitor.getId()).monitorName(monitor.getName()).monitorUrl(monitor.getUrl())
